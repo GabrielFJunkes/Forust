@@ -1,5 +1,4 @@
 use axum::{routing::get, Router, http::{StatusCode, Uri}, Extension};
-use axum_extra::extract::cookie::Key;
 use maud::{html, PreEscaped};
 use sqlx::mysql::MySqlPoolOptions;
 
@@ -33,7 +32,6 @@ async fn main() {
     };
 
     let state = AppState {
-        key: Key::generate(),
         db: pool,
     };
 

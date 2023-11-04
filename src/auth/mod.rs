@@ -1,5 +1,7 @@
 pub mod auth_api;
 
+use axum::response::IntoResponse;
+use axum_extra::extract::{CookieJar, cookie::Cookie};
 use maud::{html, Markup, PreEscaped};
 use crate::component::{build_page, form::{Form, Input, create_form}};
 
@@ -80,12 +82,12 @@ fn register() -> Markup {
     )
 }
 
-pub async fn login_page() -> Markup {
+pub async fn login_page(jar: CookieJar) -> impl IntoResponse {
     let title = "Forust - Login";
-    build_page(&title, login()).await
+    build_page(&title, login(), jar).await
 }
 
-pub async fn regiter_page() -> Markup {
+pub async fn regiter_page(jar: CookieJar) -> impl IntoResponse {
     let title = "Forust - Cadastro";
-    build_page(&title, register()).await
+    build_page(&title, register(), jar).await
 }

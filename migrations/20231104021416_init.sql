@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `inscricoes` (
 
 CREATE TABLE IF NOT EXISTS `usuarios` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `nome` varchar(255) NOT NULL,
+  `nome` varchar(255) NOT NULL UNIQUE,
   `email` varchar(255) NOT NULL UNIQUE,
   `senha` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP

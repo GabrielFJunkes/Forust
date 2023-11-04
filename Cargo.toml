@@ -10,5 +10,7 @@ axum = "0.6.20"
 maud = { version = "0.25.0", features = ["axum"] }
 tokio = { version = "1.33.0", features = ["full"] }
 sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "mysql", "time", "migrate" ] }
-axum-extra = { version = "0.8.0", features = ["cookie-private"] }
-serde = "1.0.190"
+axum-extra = { version = "0.8.0", features = ["cookie"] }
+serde = { version = "1.0.190", features = ["derive"] }
+bcrypt = "0.15.0"
+jsonwebtoken = "9"

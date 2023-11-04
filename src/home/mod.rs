@@ -1,4 +1,5 @@
-use axum::Extension;
+use axum::{Extension, response::IntoResponse};
+use axum_extra::extract::CookieJar;
 use maud::{html, Markup};
 use sqlx::types::time::OffsetDateTime;
 use crate::{component::build_page, app_state::AppState};
@@ -71,8 +72,8 @@ async fn render_post_preview(state: AppState) -> Markup {
 
 async fn content(state: AppState) -> Markup {
     html!(
-        div class="py-8 flex-grow flex justify-center w-4/5 mx-auto space-x-8" {
-            div class="w-full lg:w-8/12" {
+        div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
+            div class="w-4/5 lg:w-8/12" {
                 div class="flex items-center justify-between grow" {
                     h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Post"}
                     div {
@@ -104,7 +105,7 @@ async fn content(state: AppState) -> Markup {
 }
 
 
-pub async fn home_page(Extension(state): Extension<AppState>) -> Markup {
+pub async fn home_page(Extension(state): Extension<AppState>, jar: CookieJar) -> impl IntoResponse {
     let title = "Forust - Home";
-    build_page(&title, content(state).await).await
+    build_page(&title, content(state).await, jar).await
 }
