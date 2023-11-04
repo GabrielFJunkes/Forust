@@ -1,3 +1,4 @@
+-- Add migration script here
 CREATE TABLE IF NOT EXISTS `inscricoes` (
   `user_id` integer NOT NULL,
   `comunidade_id` integer NOT NULL,

@@ -1,6 +1,5 @@
-use axum::{routing::post, Router, http::{StatusCode, Uri}, extract::State, body::Body, Json, Extension, response::{Redirect, IntoResponse}, Form};
-use serde::{Serialize, Deserialize};
-use sqlx::{Pool, MySql};
+use axum::{routing::post, Router, Extension, response::{Redirect, IntoResponse}, Form};
+use serde::Deserialize;
 
 use crate::app_state::AppState;
 
@@ -19,8 +18,7 @@ pub async fn register(Extension(state): Extension<AppState>, Form(body): Form<Re
         .bind(body.senha)
         .execute(&state.db)
         .await;
-    println!("{:?}", query_result);
-    Redirect::permanent("/login")
+    Redirect::to("/login")
 }
 
 pub fn create_auth_router() -> Router {

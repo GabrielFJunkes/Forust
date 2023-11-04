@@ -21,6 +21,9 @@ async fn main() {
     {
         Ok(pool) => {
             println!("Banco de dados conectado com sucesso");
+            let _ = sqlx::migrate!()
+            .run(&pool)
+            .await;
             pool
         }
         Err(err) => {
