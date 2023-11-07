@@ -2,7 +2,16 @@ use axum::{routing::get, Router, http::{StatusCode, Uri}, Extension};
 use maud::{html, PreEscaped};
 use sqlx::mysql::MySqlPoolOptions;
 
-use static_rust::{home::home_page, auth::{login_page, regiter_page, auth_api::create_auth_router}, app_state::AppState};
+use static_rust::{
+    home::home_page, 
+    profile::profile_page, 
+    auth::{
+        view::{login_page, regiter_page}, 
+        api::create_auth_router
+    }, 
+    app_state::AppState, 
+    community::community_page, post::api::create_post_router
+};
 
 async fn fallback(uri: Uri) -> (StatusCode, PreEscaped<String>) {
     (StatusCode::NOT_FOUND, html!(
@@ -32,14 +41,17 @@ async fn main() {
     };
 
     let state = AppState {
-        db: pool,
+        db: pool
     };
 
     let app = Router::new()
         .route("/",get(home_page))
+        .route("/perfil", get(profile_page))
+        .route("/f/:name", get(community_page))
         .route("/login",get(login_page))
         .route("/register",get(regiter_page))
         .nest("/api", create_auth_router())
+        .nest("/api", create_post_router())
         .layer(Extension(state))
         .fallback(fallback);
 

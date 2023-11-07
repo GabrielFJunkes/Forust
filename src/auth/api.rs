@@ -2,26 +2,11 @@ use std::time::Duration;
 
 use axum::{routing::post, Router, Extension, response::Redirect, Form};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
-use bcrypt::BcryptResult;
 use jsonwebtoken::{encode, Header, EncodingKey};
-use serde::{Deserialize, Serialize};
 use sqlx::types::time::OffsetDateTime;
-
-
 use crate::app_state::AppState;
 
-#[derive(Deserialize)]
-pub struct RegisterBody {
-    nome: String,
-    email: String,
-    senha: String
-}
-
-#[derive(Deserialize)]
-pub struct LoginBody {
-    email: String,
-    senha: String
-}
+use super::structs_api::*;
 
 pub async fn register(
     Extension(state): Extension<AppState>, 
@@ -84,26 +69,12 @@ pub async fn register(
 
 }
 
-#[derive(sqlx::FromRow)]
-struct UserLogin {
-    nome: String,
-    email: String,
-    senha: String
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct UserJWT {
-    exp: String,
-    nome: String,
-    email: String
-}
-
 pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(body): Form<LoginBody>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
 
     let mut now = OffsetDateTime::now_utc();
     now += Duration::from_secs(1);
 
-    let query_result = sqlx::query_as::<_, UserLogin>("SELECT nome, email, senha FROM usuarios WHERE email = ?")
+    let query_result = sqlx::query_as::<_, UserLogin>("SELECT id, nome, email, senha FROM usuarios WHERE email = ?")
     .bind(body.email)
     .fetch_one(&state.db)
     .await;
@@ -120,6 +91,7 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
                             &Header::default(), 
                             &UserJWT {
                                 exp: expiration,
+                                id: result.id,
                                 nome: result.nome,
                                 email: result.email
                             }, 
@@ -153,7 +125,8 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
                         Err((jar.add(cookie_ob), Redirect::to("/login")))
                     }
                 },
-                Err(_) => {
+                Err(err) => {
+                    println!("1 {:?}", err);
                     let mut cookie_ob = Cookie::new("error_msg", "Erro interno no servidor.");
                     cookie_ob.set_path("/");
                     cookie_ob.set_expires(now);
@@ -162,10 +135,22 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
             }
         }
         Err(err) => {
-            let mut cookie_ob = Cookie::new("error_msg", "Erro interno no servidor.");
-                cookie_ob.set_path("/");
-                cookie_ob.set_expires(now);
-                Err((jar.add(cookie_ob), Redirect::to("/login")))
+            match err {
+                // Se não achou nenhum usuário não é um erro em si.
+                sqlx::Error::RowNotFound => {
+                    let mut cookie_ob = Cookie::new("error_msg", "Email ou senha incorreto.");
+                    cookie_ob.set_path("/");
+                    cookie_ob.set_expires(now);
+                    Err((jar.add(cookie_ob), Redirect::to("/login")))
+                }
+                _ => {
+                    let mut cookie_ob = Cookie::new("error_msg", "Erro interno no servidor.");
+                    cookie_ob.set_path("/");
+                    cookie_ob.set_expires(now);
+                    Err((jar.add(cookie_ob), Redirect::to("/login")))
+                }
+            }
+            
         }
     }
 }
