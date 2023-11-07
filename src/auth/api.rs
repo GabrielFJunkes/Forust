@@ -84,8 +84,8 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
             match bcrypt::verify(body.senha, &result.senha) {
                 Ok(equal) => {
                     if equal {
-                        let expiration = now+Duration::from_secs(10);
-                        let expiration = expiration.to_string();
+                        let expiration = now+Duration::from_secs(60*60*24);
+                        let expiration = expiration.unix_timestamp();
 
                         let token = encode(
                             &Header::default(), 

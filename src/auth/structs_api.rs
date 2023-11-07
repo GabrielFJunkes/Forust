@@ -22,9 +22,9 @@ pub struct UserLogin {
     pub senha: String
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserJWT {
-    pub exp: String,
+    pub exp: i64,
     pub id: i64,
     pub nome: String,
     pub email: String

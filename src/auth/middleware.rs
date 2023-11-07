@@ -3,14 +3,14 @@
 
 use std::time::Duration;
 
-use axum::{response::{IntoResponse, Redirect, Response}, http::{HeaderMap, StatusCode, Request}, middleware::Next};
+use axum::{response::{Redirect, Response}, http::Request, middleware::Next};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
-use jsonwebtoken::{decode, EncodingKey, Validation, DecodingKey, Algorithm};
+use jsonwebtoken::{decode, Validation, DecodingKey, Algorithm};
 use sqlx::types::time::OffsetDateTime;
 
 use super::structs_api::UserJWT;
 
-pub async fn logged_in<B>(req: Request<B>, next: Next<B>) -> Result<Response, (CookieJar, Redirect)> {
+pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response, (CookieJar, Redirect)> {
     let header = req.headers();
     let jar = CookieJar::from_headers(header);
     
@@ -39,14 +39,12 @@ pub async fn logged_in<B>(req: Request<B>, next: Next<B>) -> Result<Response, (C
                 Some(str) => str,
                 None => "",
             };
-
             match decode::<UserJWT>(token, &DecodingKey::from_secret("secret".as_ref()), &Validation::new(Algorithm::HS256)) {
                 Ok(data) => {
-                    print!("{:?}", data);
+                    req.extensions_mut().insert(data.claims);
                     Ok(next.run(req).await)
                 }
-                Err(err) => {
-                    println!("{err}");
+                Err(_err) => {
                     let mut cookie_ob = Cookie::new("error_msg", "Você precisa estar logado.");
                     cookie_ob.set_path("/");
                     cookie_ob.set_expires(now);
@@ -64,3 +62,4 @@ pub async fn logged_in<B>(req: Request<B>, next: Next<B>) -> Result<Response, (C
         Ok(next.run(req).await)
     }
 }
+    
