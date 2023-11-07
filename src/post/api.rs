@@ -1,9 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use axum::{routing::post, Router, Extension, response::Redirect, Form, http::{Request, HeaderValue, HeaderMap}, TypedHeader, headers::{Referer, Header}};
+use axum::{routing::post, Router, Extension, response::Redirect, Form, http::{Request, HeaderValue, HeaderMap}, TypedHeader, headers::{Referer, Header}, middleware};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql};
-use crate::{app_state::AppState, community::{self, structs::Tag}};
+use crate::{app_state::AppState, community::{self, structs::Tag}, auth::middleware::logged_in};
 
 use super::structs::Post;
 
@@ -87,5 +87,7 @@ pub async fn get_post_data(db: &Pool<MySql>, community_id: i64) -> Vec<Post> {
 pub fn create_post_router() -> Router {
     Router::new()
         .route("/post", post(create))
-        //.layer(middleware::is_logged_in)
+        .route_layer(middleware::from_fn(
+            |req, next| logged_in(req, next),
+        ))
 }
