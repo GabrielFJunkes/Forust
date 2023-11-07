@@ -1,6 +1,6 @@
 -- Add migration script here
 CREATE TABLE IF NOT EXISTS `inscricoes` (
-  `user_id` integer NOT NULL,
+  `usuario_id` integer NOT NULL,
   `comunidade_id` integer NOT NULL,
   `admin` boolean DEFAULT FALSE,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
   `titulo` varchar(255) NOT NULL,
   `body` text NOT NULL,
-  `user_id` integer,
+  `usuario_id` integer,
   `comunidade_id` integer,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,17 +63,17 @@ CREATE TABLE IF NOT EXISTS `comentarios` (
   `comentario_id` integer
 );
 
-ALTER TABLE `inscricoes` ADD CONSTRAINT PRIMARY KEY(`user_id`, `comunidade_id`);
+ALTER TABLE `inscricoes` ADD CONSTRAINT PRIMARY KEY(`usuario_id`, `comunidade_id`);
 
 ALTER TABLE `posts_tem_tags` ADD CONSTRAINT PRIMARY KEY(`post_id`, `tag_id`);
 
-ALTER TABLE `inscricoes` ADD FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`);
+ALTER TABLE `inscricoes` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
 
 ALTER TABLE `inscricoes` ADD FOREIGN KEY (`comunidade_id`) REFERENCES `comunidades` (`id`);
 
 ALTER TABLE `tags` ADD FOREIGN KEY (`comunidade_id`) REFERENCES `comunidades` (`id`);
 
-ALTER TABLE `posts` ADD FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`);
+ALTER TABLE `posts` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
 
 ALTER TABLE `posts` ADD FOREIGN KEY (`comunidade_id`) REFERENCES `comunidades` (`id`);
 
