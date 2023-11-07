@@ -1,9 +1,6 @@
-use axum::{Extension, response::IntoResponse, extract::Path};
-use axum_extra::extract::CookieJar;
 use maud::{html, Markup};
-use sqlx::types::time::OffsetDateTime;
 
-use crate::{app_state::AppState, post::api::get_post_data, component::page::{build_page, is_logged_in}};
+use crate::{app_state::AppState, post::api::get_post_data};
 
 use super::structs::{Tag, Community};
 

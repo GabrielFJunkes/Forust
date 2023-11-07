@@ -5,7 +5,6 @@ use maud::{html, Markup};
 use crate::{app_state::AppState, community::structs::TopCommunity, component::page::build_page, post::{structs::Post, api::get_post_data}};
 
 async fn render_post_preview(state: &AppState) -> Markup {
-    //TODO
     let posts = get_post_data(&state.db, None).await;
     html!(
         @if posts.is_empty(){

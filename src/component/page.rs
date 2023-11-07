@@ -47,7 +47,26 @@ fn nav(logged: bool) -> Markup {
                   
                 div dir="rtl" class="basis-1/4" {
                     @if logged {
-                        a href="/perfil" class="text-xl text-gray-800 md:text-base mr-2" { "Meu perfil" }
+                        div class="text-xl text-gray-800 md:text-base group cursor-pointer w-fit" {
+                            a href="/perfil" class="text-xl text-gray-800 md:text-base block" { "Meu perfil" }
+                            div class="hidden group-hover:block absolute mb-1 bg-white border border-gray-200 shadow-lg" {
+                                a href="/logout" class="block px-3 py-1 text-sm text-gray-800 hover:bg-gray-100 inline-flex flex"{
+                                    ("Logout")
+                                    svg xmlns="http://www.w3.org/2000/svg" 
+                                    fill="none" 
+                                    viewBox="0 0 24 24" 
+                                    stroke-width="1.5" 
+                                    stroke="currentColor" 
+                                    class="w-5 h-5 mr-1"{
+                                        path stroke-linecap="round" 
+                                        stroke-linejoin="round" 
+                                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" 
+                                        {}
+                                    }
+
+                                }
+                            }
+                        }
                     }@else {
                         a href="/login" class="text-xl text-gray-800 md:text-base mr-2" { "Login" }
                     }
@@ -71,8 +90,9 @@ fn footer() -> Markup {
 }
 
 fn notification(cookie: (String, String)) -> Markup {
-    let class = "z-10 absolute right-2 top-2 flex flex-row p-2 max-w-xs text-sm text-white rounded-md shadow-lg mb-3 ml-3 ".to_owned() + &cookie.0;
+    let class = "z-10 peer-checked:hidden fade-out absolute right-2 top-2 flex flex-row p-2 max-w-xs text-sm text-white rounded-md shadow-lg mb-3 ml-3 ".to_owned() + &cookie.0;
     html!(
+        input type="checkbox" id="toggle" class="hidden peer" {}
         div 
         class=(class)
         role="alert" {
@@ -81,8 +101,7 @@ fn notification(cookie: (String, String)) -> Markup {
             }
 
             div class="flex ml-auto items-center" {
-                button 
-                type="button" 
+                label for="toggle"
                 class="inline-flex flex-shrink-0 justify-center 
                 items-center h-4 w-4 rounded-md text-white/[.5] 
                 hover:text-white focus:outline-none focus:ring-2 
@@ -101,6 +120,22 @@ fn notification(cookie: (String, String)) -> Markup {
                 }
             }
         }
+        (PreEscaped("
+        <style>
+        .fade-out {
+          opacity: 1;
+          animation: fadeOut ease-in 1s;
+          animation-fill-mode: forwards;
+          animation-delay: 2s;
+        }
+        
+        @keyframes fadeOut {
+          100% {
+            opacity: 0;
+          }
+        }
+        </style>
+        "))
     )
 }
 
