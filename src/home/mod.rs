@@ -8,6 +8,7 @@ use crate::{app_state::AppState, community::{structs::{Community, TopCommunity},
 struct Post { id: i64, titulo: String, body: String, user_id: i64, comunidade_id: i64, created_at: OffsetDateTime }
 
 async fn render_post_preview(state: &AppState) -> Markup {
+    //TODO
     let result = sqlx::query_as::<_, Post>("SELECT * FROM posts")
     .fetch_all(&state.db)
     .await;

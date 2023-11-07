@@ -88,12 +88,13 @@ fn render_tags(tags: Vec<Tag>) -> Markup {
     )
 }
 
-fn render_create_post(tags: &Vec<Tag>) -> Markup {
+fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
     html!(
         form 
         action="/api/post"
         method="POST"
         class="bg-white flex flex-col shadow-md rounded px-8 pt-6 pb-8 mb-4" {
+            input type="hidden" name="community_id" value=(community_id) {  }
             div class="mb-6" {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="titulo" { "Título" }
                 input 
@@ -152,7 +153,7 @@ async fn content(state: &AppState, community: Community, logged_in: bool) -> Mar
                     }
                 }
                 @if logged_in {
-                    (render_create_post(&community.tags))
+                    (render_create_post(&community.tags, community.id))
                 }
                 (render_posts_preview(state, community.id).await);
             }
