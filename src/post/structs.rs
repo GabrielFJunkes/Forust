@@ -6,5 +6,6 @@ pub struct Post {
     pub titulo: String,
     pub body: String,
     pub user_name: String,
+    pub community_name: String,
     pub created_at: OffsetDateTime
 }

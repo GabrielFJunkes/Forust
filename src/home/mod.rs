@@ -47,7 +47,7 @@ async fn render_post_preview(state: &AppState) -> Markup {
                     }
                     div class="lg:w-full" {
                         div class="flex items-center justify-between" {
-                            span class="font-light text-gray-600" { "f/Comida - " (post.created_at) }
+                            span class="font-light text-gray-600" { (format!("f/{} - {}", post.community_name, post.created_at)) }
                             a href="#"
                             class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { "Tag" }
                         }

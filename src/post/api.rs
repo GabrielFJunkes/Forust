@@ -73,7 +73,7 @@ pub async fn create(
 }
 
 pub async fn get_post_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<Post> {
-    let query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, posts.created_at FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id";
+    let query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, comunidades.nome as community_name, posts.created_at FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id JOIN comunidades ON posts.comunidade_id = comunidades.id";
     let result: Result<Vec<Post>, Error>;
     if let Some(community_id) = community_id {
         result = sqlx::query_as::<_, Post>(
@@ -91,7 +91,9 @@ pub async fn get_post_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<P
 
     match result {
         Ok(vec) => vec,
-        Err(_) => [].to_vec(),
+        Err(err) => {
+            println!("{err}");
+            [].to_vec()},
     }
 }
 
