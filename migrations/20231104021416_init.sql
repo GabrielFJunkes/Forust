@@ -1,7 +1,7 @@
 -- Add migration script here
 CREATE TABLE IF NOT EXISTS `inscricoes` (
-  `usuario_id` integer NOT NULL,
-  `comunidade_id` integer NOT NULL,
+  `usuario_id` integer PRIMARY KEY,
+  `comunidade_id` integer PRIMARY KEY,
   `admin` boolean DEFAULT FALSE,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -31,41 +31,33 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
   `titulo` varchar(255) NOT NULL,
   `body` text NOT NULL,
-  `usuario_id` integer,
-  `comunidade_id` integer,
+  `tag_id` integer,
+  `usuario_id` integer NOT NULL,
+  `comunidade_id` integer NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS `usuarios_avaliam_posts` (
-  `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `post_id` integer,
-  `usuario_id` integer,
+  `post_id` integer PRIMARY KEY,
+  `usuario_id` integer PRIMARY KEY,
   `gostou` boolean NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS `usuarios_avaliam_comentarios` (
-  `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `comentario_id` integer,
-  `usuario_id` integer,
+  `comentario_id` integer PRIMARY KEY,
+  `usuario_id` integer PRIMARY KEY,
   `gostou` boolean NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS `posts_tem_tags` (
-  `post_id` integer,
-  `tag_id` integer
 );
 
 CREATE TABLE IF NOT EXISTS `comentarios` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
   `body` text NOT NULL,
-  `post_id` integer,
-  `usuario_id` integer,
+  `post_id` integer NOT NULL,
+  `usuario_id` integer NOT NULL,
   `comentario_id` integer
 );
 
 ALTER TABLE `inscricoes` ADD CONSTRAINT PRIMARY KEY(`usuario_id`, `comunidade_id`);
-
-ALTER TABLE `posts_tem_tags` ADD CONSTRAINT PRIMARY KEY(`post_id`, `tag_id`);
 
 ALTER TABLE `inscricoes` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
 
@@ -74,6 +66,8 @@ ALTER TABLE `inscricoes` ADD FOREIGN KEY (`comunidade_id`) REFERENCES `comunidad
 ALTER TABLE `tags` ADD FOREIGN KEY (`comunidade_id`) REFERENCES `comunidades` (`id`);
 
 ALTER TABLE `posts` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
+
+ALTER TABLE `posts` ADD FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`);
 
 ALTER TABLE `posts` ADD FOREIGN KEY (`comunidade_id`) REFERENCES `comunidades` (`id`);
 
@@ -84,10 +78,6 @@ ALTER TABLE `usuarios_avaliam_posts` ADD FOREIGN KEY (`usuario_id`) REFERENCES `
 ALTER TABLE `usuarios_avaliam_comentarios` ADD FOREIGN KEY (`comentario_id`) REFERENCES `comentarios` (`id`);
 
 ALTER TABLE `usuarios_avaliam_comentarios` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
-
-ALTER TABLE `posts_tem_tags` ADD FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`);
-
-ALTER TABLE `posts_tem_tags` ADD FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`);
 
 ALTER TABLE `comentarios` ADD FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`);
 
