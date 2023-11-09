@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use axum::{response::{Redirect, Response, IntoResponse}, http::Request, middleware::Next};
+use axum::{response::{Redirect, Response}, http::Request, middleware::Next};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{decode, Validation, DecodingKey, Algorithm};
 use sqlx::types::time::OffsetDateTime;

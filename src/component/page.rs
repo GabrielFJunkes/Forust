@@ -1,4 +1,4 @@
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 
@@ -153,11 +153,15 @@ fn consume_notification_cookie(jar: CookieJar) -> (Option<(String, String)>, Coo
     let new_jar: CookieJar;
     if let Some(cookie) = jar.get("success_msg") {
         notification = Some(("bg-green-500".to_string(), cookie.value().to_owned().to_string()));
-        new_jar = jar.remove(Cookie::named("success_msg"));
+        let mut cookie = Cookie::named("success_msg");
+        cookie.set_path("/");
+        new_jar = jar.remove(cookie);
         
     }else if let Some(cookie) = jar.get("error_msg") {
         notification = Some(("bg-red-500".to_string(), cookie.value().to_owned().to_string()));
-        new_jar = jar.remove(Cookie::named("error_msg"));  
+        let mut cookie = Cookie::named("error_msg");
+        cookie.set_path("/");
+        new_jar = jar.remove(cookie);
     }else{
         new_jar = jar;
     }
@@ -165,27 +169,33 @@ fn consume_notification_cookie(jar: CookieJar) -> (Option<(String, String)>, Coo
 }
 
 
-// struct HtmlWithCookies {
+// pub struct HtmlWithCookies {
 //     html: PreEscaped<String>,
 //     jar: CookieJar,
 // }
 // 
 // impl IntoResponse for HtmlWithCookies {
 //     fn into_response(self) -> Response {
-//         let mut response = self.html.into_response();
-//         for cookie in self.jar.iter() {
-//             response.headers_mut().append(
-//                 axum::http::header::SET_COOKIE,
-//                 axum::http::HeaderValue::from_str(&cookie.encoded().to_string()).unwrap(),
-//             );
-//         }
-//         response
+//     let mut response = self.html.into_response();
+//     for cookie in self.jar.iter() {
+//         response.headers_mut().append(
+//             axum::http::header::SET_COOKIE,
+//             axum::http::HeaderValue::from_str(&cookie.encoded().to_string()).unwrap(),
+//         );
+//     }
+//     if let Some(cookie) = self.jar.get("success_msg") {
+//         response.headers_mut().append(
+//             axum::http::header::SET_COOKIE,
+//             axum::http::HeaderValue::from_str(&cookie.encoded().to_string()).unwrap(),
+//         );
+//     }
+//     response
 //     }
 // }
 
 pub async fn build_page(title: &str, content: Markup, jar: CookieJar) -> impl IntoResponse {
     let logged_in = is_logged_in(jar.get("session_jwt"));
-    let (option_noti, jar) = consume_notification_cookie(jar);
+    let (option_noti, _jar) = consume_notification_cookie(jar);
     let html = html!(
         (DOCTYPE);
         (header(title));

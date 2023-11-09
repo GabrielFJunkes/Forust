@@ -23,7 +23,7 @@ fn login() -> Markup {
         ],
         button_title: "Logar".to_string(),
         button_type: "submit".to_string(),
-        action: "/api/login".to_string(),
+        action: "/api/auth/login".to_string(),
         method: "POST".to_string(),
         rest: Some(html!(
             a class="inline-block mx-5 align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" href="register"
@@ -69,7 +69,7 @@ fn register() -> Markup {
         ],
         button_title: "Registrar".to_string(),
         button_type: "submit".to_string(),
-        action: "/api/register".to_string(),
+        action: "/api/auth/register".to_string(),
         method: "POST".to_string(),
         rest: None,
     };
