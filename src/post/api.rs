@@ -2,24 +2,19 @@ use std::time::Duration;
 use axum::{routing::post, Router, Extension, response::Redirect, Form, http::HeaderMap, middleware};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
-use crate::{app_state::AppState, auth::{middleware::logged_in, structs_api::UserJWT}};
+use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, middleware::get_referer}};
 
 use super::structs::{Post, PostBody};
 
 pub async fn create(
     Extension(state): Extension<AppState>, 
     Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
     jar: CookieJar,
-    header: HeaderMap,
     Form(body): Form<PostBody>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
 
     let mut now = OffsetDateTime::now_utc();
     now += Duration::from_secs(1);
-
-    let referer = match header.get("referer") {
-        Some(url) => url.to_str().unwrap_or("/"),
-        None => "/",
-    };
 
     let query_result = sqlx::query("INSERT INTO posts (titulo, body, usuario_id, comunidade_id, tag_id) 
                                         VALUES (?, ?, ?, ?, CASE WHEN ? = 'NULL' THEN NULL ELSE ? END)")
@@ -38,7 +33,7 @@ pub async fn create(
             cookie_ob.set_path("/");
             cookie_ob.set_expires(now);
             let jar = jar.add(cookie_ob);
-            Ok((jar, Redirect::to(referer)))
+            Ok((jar, Redirect::to(referer.url.as_str())))
         },
         Err(err) => {
             println!("{err}");
@@ -46,10 +41,9 @@ pub async fn create(
             cookie_ob.set_path("/");
             cookie_ob.set_expires(now);
             let jar = jar.add(cookie_ob);
-            
             Err(
                 (jar,
-                Redirect::to(referer))
+                Redirect::to(referer.url.as_str()))
             )
         },
     }   
@@ -84,7 +78,7 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<
 
 pub fn create_post_router() -> Router {
     Router::new()
-        .route("/post", post(create))
+        .route("/", post(create))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

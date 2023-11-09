@@ -1,5 +1,5 @@
-use axum::{routing::get, Router, http::{StatusCode, Uri}, Extension};
-use maud::{html, PreEscaped};
+use axum::{routing::get, Router, http::{StatusCode, Uri}, Extension, middleware};
+use maud::{html, Markup};
 use sqlx::mysql::MySqlPoolOptions;
 
 use static_rust::{
@@ -10,10 +10,10 @@ use static_rust::{
         api::create_auth_router
     }, 
     app_state::AppState, 
-    community::community_page, post::api::create_post_router
+    community::community_page, post::api::create_post_router, component::{middleware::get_referer, page::is_logged_in}
 };
 
-async fn fallback(uri: Uri) -> (StatusCode, PreEscaped<String>) {
+async fn fallback(uri: Uri) -> (StatusCode, Markup) {
     (StatusCode::NOT_FOUND, html!(
         h1 { "Rota " (uri) " inválida." }
     ))
@@ -45,13 +45,16 @@ async fn main() {
     };
 
     let app = Router::new()
+        .route_layer(middleware::from_fn(
+            |req, next| get_referer(req, next),
+        ))
         .route("/",get(home_page))
         .route("/perfil", get(profile_page))
         .route("/f/:name", get(community_page))
         .route("/login",get(login_page))
         .route("/register",get(regiter_page))
-        .nest("/api", create_auth_router())
-        .nest("/api", create_post_router())
+        .nest("/api/auth", create_auth_router())
+        .nest("/api/post", create_post_router())
         .layer(Extension(state))
         .fallback(fallback);
 

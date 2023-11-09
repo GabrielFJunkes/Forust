@@ -29,3 +29,4 @@ pub struct UserJWT {
     pub nome: String,
     pub email: String
 }
+

@@ -6,7 +6,7 @@ use jsonwebtoken::{encode, Header, EncodingKey};
 use sqlx::types::time::OffsetDateTime;
 use crate::app_state::AppState;
 
-use super::structs_api::*;
+use super::structs::*;
 
 pub async fn register(
     Extension(state): Extension<AppState>, 
@@ -126,7 +126,6 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
                     }
                 },
                 Err(err) => {
-                    println!("1 {:?}", err);
                     let mut cookie_ob = Cookie::new("error_msg", "Erro interno no servidor.");
                     cookie_ob.set_path("/");
                     cookie_ob.set_expires(now);

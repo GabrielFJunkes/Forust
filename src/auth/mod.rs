@@ -1,4 +1,4 @@
 pub mod api;
-pub mod structs_api;
+pub mod structs;
 pub mod view;
 pub mod middleware;

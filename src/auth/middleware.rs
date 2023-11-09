@@ -3,12 +3,14 @@
 
 use std::time::Duration;
 
-use axum::{response::{Redirect, Response}, http::Request, middleware::Next};
+use axum::{response::{Redirect, Response, IntoResponse}, http::Request, middleware::Next};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{decode, Validation, DecodingKey, Algorithm};
 use sqlx::types::time::OffsetDateTime;
 
-use super::structs_api::UserJWT;
+use crate::component::structs::Referer;
+
+use super::structs::UserJWT;
 
 pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response, (CookieJar, Redirect)> {
     let header = req.headers();
@@ -16,11 +18,10 @@ pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response
     
     let mut now = OffsetDateTime::now_utc();
     now += Duration::from_secs(1);
-    
-    let referer = match header.get("referer") {
-        Some(url) => url.to_str().unwrap_or("/"),
-        None => "/",
-    };
+    let mut referer = "/";
+    if let Some(referer_ob) = req.extensions().get::<Referer>() {
+        referer = referer_ob.url.as_str();
+    }
     let session = jar.get("session_jwt");
     
     if let Some(token) = session {
@@ -32,7 +33,7 @@ pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response
             
             Err(
                 (jar,
-                Redirect::to(referer))
+                Redirect::to(&referer))
             )
         }else{
             let token = match token.value().split("=").next() {
@@ -52,7 +53,7 @@ pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response
                     
                     Err(
                         (jar,
-                        Redirect::to(referer))
+                        Redirect::to(&referer))
                     )
                 },
             }
@@ -62,4 +63,3 @@ pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response
         Ok(next.run(req).await)
     }
 }
-    
