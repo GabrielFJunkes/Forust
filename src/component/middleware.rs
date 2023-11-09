@@ -1,4 +1,4 @@
-use axum::{http::Request, middleware::Next, response::Response, Error};
+use axum::{http::Request, middleware::Next, response::Response};
 
 use super::structs::Referer;
 

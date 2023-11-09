@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use axum::{routing::post, Router, Extension, response::Redirect, Form};
+use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{encode, Header, EncodingKey};
 use sqlx::types::time::OffsetDateTime;
-use crate::app_state::AppState;
+use crate::{app_state::AppState, component::structs::Referer};
 
 use super::structs::*;
 
@@ -154,9 +154,15 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
     }
 }
 
+async fn logout(jar: CookieJar, Extension(referer): Extension<Referer>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    let mut cookie = Cookie::named("session_jwt");
+    cookie.set_path("/");
+    Ok((jar.remove(cookie),Redirect::to(&referer.url)))
+}
 
 pub fn create_auth_router() -> Router {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/logout", get(logout))
 }

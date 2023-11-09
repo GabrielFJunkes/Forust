@@ -45,9 +45,6 @@ async fn main() {
     };
 
     let app = Router::new()
-        .route_layer(middleware::from_fn(
-            |req, next| get_referer(req, next),
-        ))
         .route("/",get(home_page))
         .route("/perfil", get(profile_page))
         .route("/f/:name", get(community_page))
@@ -56,6 +53,9 @@ async fn main() {
         .nest("/api/auth", create_auth_router())
         .nest("/api/post", create_post_router())
         .layer(Extension(state))
+        .route_layer(middleware::from_fn(
+            |req, next| get_referer(req, next),
+        ))
         .fallback(fallback);
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())

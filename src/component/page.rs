@@ -50,7 +50,7 @@ fn nav(logged: bool) -> Markup {
                         div class="text-xl text-gray-800 md:text-base group cursor-pointer w-fit" {
                             a href="/perfil" class="text-xl text-gray-800 md:text-base block" { "Meu perfil" }
                             div class="hidden group-hover:block absolute mb-1 bg-white border border-gray-200 shadow-lg" {
-                                a href="/logout" class="block px-3 py-1 text-sm text-gray-800 hover:bg-gray-100 inline-flex flex"{
+                                a href="/api/auth/logout" class="block px-3 py-1 text-sm text-gray-800 hover:bg-gray-100 inline-flex flex"{
                                     ("Logout")
                                     svg xmlns="http://www.w3.org/2000/svg" 
                                     fill="none" 
