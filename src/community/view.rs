@@ -49,8 +49,10 @@ pub async fn render_posts_preview(state: &AppState, id: i64) -> Markup {
                     div class="lg:w-full" {
                         div class="flex items-center justify-between" {
                             span class="font-light text-gray-600" { (format!("f/{} - {}", post.community_name, post.created_at)) }
-                            a href="#"
-                            class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { "Tag" }
+                            @if let Some(tag_name) = post.tag_name {
+                                a href=(format!("/f/{}?tag={}", post.community_name,tag_name))
+                                class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { (tag_name) }
+                            }
                         }
                         div class="mt-2" {
                             a href="#" class="text-2xl font-bold text-gray-700 hover:underline"{
@@ -100,19 +102,29 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="conteudo" { "Conteúdo" }
                 textarea 
                 id="conteudo"
-                name="conteudo"
+                name="body"
                 placeholder="O conteúdo da sua postagem"
                 class="shadow appearance-none border rounded w-full py-2 px-3 
                 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" {}
             }
             @if !tags.is_empty() {
                 div class="mb-6 flex flex-nowrap" {
+                    div class="flex mr-5" {
+                        input 
+                        name="tag_id"
+                        id="nenhum"
+                        checked
+                        value="NULL"
+                        type="radio" {}
+                        label class="block text-gray-700 text-sm font-bold ml-1" for="nenhum" { "Nenhum" }
+                    }
                     @for tag in tags {
                         div class="flex mr-5" {
                             input 
+                            name="tag_id"
+                            value=(tag.id)
                             id=(tag.nome)
-                            type="checkbox"
-                            name=(tag.nome) {}
+                            type="radio" {}
                             label class="block text-gray-700 text-sm font-bold ml-1" for=(tag.nome) { (tag.nome) }
                         }
                     }

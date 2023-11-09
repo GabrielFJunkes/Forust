@@ -48,8 +48,10 @@ async fn render_post_preview(state: &AppState) -> Markup {
                     div class="lg:w-full" {
                         div class="flex items-center justify-between" {
                             span class="font-light text-gray-600" { (format!("f/{} - {}", post.community_name, post.created_at)) }
-                            a href="#"
-                            class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { "Tag" }
+                            @if let Some(tag_name) = post.tag_name {
+                                a href=(format!("/f/{}?tag={}", post.community_name,tag_name))
+                                class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { (tag_name) }
+                            }
                         }
                         div class="mt-2" {
                             a href="#" class="text-2xl font-bold text-gray-700 hover:underline"{
