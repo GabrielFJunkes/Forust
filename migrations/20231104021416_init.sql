@@ -1,9 +1,10 @@
 -- Add migration script here
 CREATE TABLE IF NOT EXISTS `inscricoes` (
-  `usuario_id` integer PRIMARY KEY,
-  `comunidade_id` integer PRIMARY KEY,
+  `usuario_id` integer NOT NULL,
+  `comunidade_id` integer NOT NULL,
   `admin` boolean DEFAULT FALSE,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`usuario_id`, `comunidade_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `usuarios` (
@@ -38,15 +39,17 @@ CREATE TABLE IF NOT EXISTS `posts` (
 );
 
 CREATE TABLE IF NOT EXISTS `usuarios_avaliam_posts` (
-  `post_id` integer PRIMARY KEY,
-  `usuario_id` integer PRIMARY KEY,
-  `gostou` boolean NOT NULL
+  `post_id` integer NOT NULL,
+  `usuario_id` integer NOT NULL,
+  `gostou` boolean NOT NULL,
+  PRIMARY KEY (`usuario_id`, `post_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `usuarios_avaliam_comentarios` (
-  `comentario_id` integer PRIMARY KEY,
-  `usuario_id` integer PRIMARY KEY,
-  `gostou` boolean NOT NULL
+  `comentario_id` integer NOT NULL,
+  `usuario_id` integer NOT NULL,
+  `gostou` boolean NOT NULL,
+  PRIMARY KEY (`usuario_id`, `comentario_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `comentarios` (
@@ -56,8 +59,6 @@ CREATE TABLE IF NOT EXISTS `comentarios` (
   `usuario_id` integer NOT NULL,
   `comentario_id` integer
 );
-
-ALTER TABLE `inscricoes` ADD CONSTRAINT PRIMARY KEY(`usuario_id`, `comunidade_id`);
 
 ALTER TABLE `inscricoes` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
 
