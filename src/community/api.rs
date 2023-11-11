@@ -53,9 +53,9 @@ pub async fn create(
     Form(body): Form<CommunityBody>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
 
     let mut now = OffsetDateTime::now_utc();
-    now += Duration::from_secs(1);
+    now += Duration::from_secs(5);
 
-    let query_result = sqlx::query("INSERT INTO comunidades (nome, desc) VALUES (?, ?)")
+    let query_result = sqlx::query("INSERT INTO comunidades (comunidades.nome, comunidades.desc) VALUES (?, ?)")
         .bind(body.nome)
         .bind(body.desc)
         .execute(&state.db)
@@ -63,7 +63,7 @@ pub async fn create(
 
     match query_result {
         Ok(com) => {
-            let _ = sqlx::query("INSERT INTO incricoes (usuario_id, comunidade_id, admin) VALUES (?, ?, TRUE)")
+            let _ = sqlx::query("INSERT INTO inscricoes (usuario_id, comunidade_id, admin) VALUES (?, ?, TRUE)")
             .bind(user.id)
             .bind(com.last_insert_id())
             .execute(&state.db)
@@ -74,7 +74,8 @@ pub async fn create(
             let jar = jar.add(cookie_ob);
             Ok((jar, Redirect::to(referer.url.as_str())))
         },
-        Err(_err) => {
+        Err(err) => {
+            println!("{err}");
             let mut cookie_ob = Cookie::new("error_msg", "Erro ao criar comunidade.");
             cookie_ob.set_path("/");
             cookie_ob.set_expires(now);
