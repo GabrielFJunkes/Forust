@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 
 
 #[derive(sqlx::FromRow, Clone)]
@@ -24,6 +26,12 @@ pub struct TopCommunity {
 #[derive(sqlx::FromRow)]
 pub struct CommunityData {
     pub id: i64,
+    pub nome: String,
+    pub desc: String
+}
+
+#[derive(Clone, Deserialize)]
+pub struct CommunityBody {
     pub nome: String,
     pub desc: String
 }

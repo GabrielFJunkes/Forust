@@ -10,7 +10,7 @@ use static_rust::{
         api::create_auth_router
     }, 
     app_state::AppState, 
-    community::community_page, post::api::create_post_router, component::{middleware::get_referer, page::is_logged_in}
+    community::{community_page, api::create_community_router}, post::api::create_post_router, component::{middleware::get_referer, page::is_logged_in}
 };
 
 async fn fallback(uri: Uri) -> (StatusCode, Markup) {
@@ -44,14 +44,18 @@ async fn main() {
         db: pool
     };
 
+    let api = Router::new()
+    .nest("/auth", create_auth_router())
+    .nest("/post", create_post_router())
+    .nest("/comunidade", create_community_router());
+
     let app = Router::new()
         .route("/",get(home_page))
         .route("/perfil", get(profile_page))
         .route("/f/:name", get(community_page))
         .route("/login",get(login_page))
         .route("/register",get(regiter_page))
-        .nest("/api/auth", create_auth_router())
-        .nest("/api/post", create_post_router())
+        .nest("/api", api)
         .layer(Extension(state))
         .route_layer(middleware::from_fn(
             |req, next| get_referer(req, next),
