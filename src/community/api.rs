@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use axum::{Extension, Form, response::Redirect, Router, middleware, routing::post};
-use axum_extra::extract::{CookieJar, cookie::Cookie};
+use axum::{Extension, Form, response::{Redirect, IntoResponse}, Router, middleware, routing::{post, get}, extract::{path, Path}};
+use axum_extra::extract::{CookieJar, cookie::{Cookie, self}};
 use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::structs::Referer};
 
-use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData};
+use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow};
 
 
 pub async fn get_community_data(db: &Pool<MySql>, name: &String) -> Option<Community> {
@@ -99,9 +99,90 @@ pub async fn get_user_followed_communities(db: &Pool<MySql>, user_id: i64) -> Ve
     }
 } 
 
+pub async fn get_if_follows(user_id: i64, community_id: &String, db: &Pool<MySql>) -> Option<Follow> {
+    let query_result = sqlx::query_as::<_, Follow>("SELECT usuario_id, comunidade_id, admin FROM inscricoes WHERE usuario_id=? AND comunidade_id=?")
+    .bind(user_id)
+    .bind(community_id)
+    .fetch_optional(db)
+    .await;
+
+    match query_result {
+        Ok(follow) => follow,
+        Err(_) => None
+    }
+}
+
+pub async fn inscrever(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>,
+    Extension(referer): Extension<Referer>,
+    jar: CookieJar,
+    Path(id): Path<String>
+) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    let follow = get_if_follows(user.id, &id, &state.db).await;
+
+    let mut now = OffsetDateTime::now_utc();
+    now += Duration::from_secs(5);
+
+    match follow {
+        Some(result) => {
+            if result.admin {
+                todo!("Check if is only admin");
+            }else{
+                let delete_result = sqlx::query("DELETE FROM inscricoes WHERE usuario_id=? AND comunidade_id=?")
+                .bind(user.id)
+                .bind(id)
+                .execute(&state.db)
+                .await;   
+                
+                match delete_result {
+                    Ok(_) => {
+                        let mut cookie_ob = Cookie::new("success_msg", "Você deixou de seguir essa comunidade.");
+                        cookie_ob.set_path("/");
+                        cookie_ob.set_expires(now);
+
+                        Ok((
+                            jar.add(cookie_ob),
+                            Redirect::to(&referer.url)
+                        ))
+                    },
+                    Err(err) => {
+                        println!("{err}");
+                        let mut cookie_ob = Cookie::new("error_msg", "Erro ao deixar de seguir comunidade.");
+                        cookie_ob.set_path("/");
+                        cookie_ob.set_expires(now);
+
+                        Err((
+                            jar.add(cookie_ob),
+                            Redirect::to(&referer.url)
+                        ))
+                    },
+                }
+            }
+        },
+        None => {
+            let _ = sqlx::query("INSERT INTO inscricoes (usuario_id, comunidade_id) VALUES (?, ?)")
+            .bind(user.id)
+            .bind(id)
+            .execute(&state.db)
+            .await;
+
+            let mut cookie_ob = Cookie::new("success_msg", "Comunidade seguida com sucesso.");
+            cookie_ob.set_path("/");
+            cookie_ob.set_expires(now);
+
+            Ok((
+                jar.add(cookie_ob),
+                Redirect::to(&referer.url)
+            ))
+        },
+    }
+}
+
 pub fn create_community_router() -> Router {
     Router::new()
         .route("/", post(create))
+        .route("/:id/seguir", get(inscrever))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

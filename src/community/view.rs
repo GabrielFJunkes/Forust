@@ -100,8 +100,11 @@ pub async fn content(state: &AppState, community: Community, logged_in: bool) ->
                 }
                 (render_posts(state, community.id).await);
             }
-            div class="hidden w-4/12 lg:block" {
-                h1 class="mb-4 text-xl font-bold text-gray-700 md:text-2xl" {"f/" (community.nome)}
+            div class="w-4/12 lg:block" {
+                div class="mb-4 inline-flex flex" {
+                    h1 class="text-xl font-bold text-gray-700 md:text-2xl" {"f/" (community.nome)}
+                    a href=(format!("/api/comunidade/{}/seguir", community.id)) class="ml-2 w-fit text-sm px-3 my-1 rounded-lg flex items-center bg-blue-600 text-white" { "Seguir" }
+                }
                 div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
                     (community.desc)
                 }

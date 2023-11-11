@@ -38,6 +38,13 @@ pub struct FollowedCommunityData {
     pub admin: bool
 }
 
+#[derive(sqlx::FromRow, Clone)]
+pub struct Follow {
+    pub usuario_id: i64,
+    pub comunidade_id: i64,
+    pub admin: bool
+}
+
 #[derive(Clone, Deserialize)]
 pub struct CommunityBody {
     pub nome: String,
