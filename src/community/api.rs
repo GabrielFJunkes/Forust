@@ -6,7 +6,7 @@ use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::structs::Referer};
 
-use super::structs::{Community, CommunityData, Tag, CommunityBody};
+use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData};
 
 
 pub async fn get_community_data(db: &Pool<MySql>, name: &String) -> Option<Community> {
@@ -87,6 +87,17 @@ pub async fn create(
         },
     }   
 }
+
+pub async fn get_user_followed_communities(db: &Pool<MySql>, user_id: i64) -> Vec<FollowedCommunityData> {
+    let query_result = sqlx::query_as::<_, FollowedCommunityData>("SELECT comunidades.id, comunidades.nome, comunidades.desc, inscricoes.admin FROM inscricoes JOIN comunidades ON comunidades.id = inscricoes.comunidade_id WHERE usuario_id=?")
+    .bind(user_id)
+    .fetch_all(db)
+    .await;
+    match query_result {
+        Ok(vec) => vec,
+        Err(_) => [].to_vec(),
+    }
+} 
 
 pub fn create_community_router() -> Router {
     Router::new()

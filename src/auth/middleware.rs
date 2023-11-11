@@ -60,6 +60,14 @@ pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response
         }
         
     }else{
-        Ok(next.run(req).await)
+        let mut cookie_ob = Cookie::new("error_msg", "Você precisa estar logado.");
+        cookie_ob.set_path("/");
+        cookie_ob.set_expires(now);
+        let jar = jar.add(cookie_ob);
+        
+        Err(
+            (jar,
+            Redirect::to(&referer))
+        )
     }
 }

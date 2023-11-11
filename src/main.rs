@@ -7,7 +7,7 @@ use static_rust::{
     profile::profile_page, 
     auth::{
         view::{login_page, regiter_page}, 
-        api::create_auth_router
+        api::create_auth_router, middleware::logged_in
     }, 
     app_state::AppState, 
     community::{community_page, api::create_community_router}, post::api::create_post_router, component::{middleware::get_referer, page::is_logged_in}
@@ -50,8 +50,11 @@ async fn main() {
     .nest("/comunidade", create_community_router());
 
     let app = Router::new()
-        .route("/",get(home_page))
         .route("/perfil", get(profile_page))
+        .route_layer(middleware::from_fn(
+            |req, next| logged_in(req, next),
+        ))
+        .route("/",get(home_page))
         .route("/f/:name", get(community_page))
         .route("/login",get(login_page))
         .route("/register",get(regiter_page))

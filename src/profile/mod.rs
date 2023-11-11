@@ -2,9 +2,35 @@ use axum::{Extension, response::IntoResponse};
 use axum_extra::extract::CookieJar;
 use maud::{Markup, html};
 
-use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::build_page}};
+use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::build_page}, auth::structs::UserJWT, community::api::get_user_followed_communities};
 
-async fn content(_state: AppState) -> Markup {
+async fn render_followed_communities(state: AppState,user_id: i64) -> Markup {
+    let communities = get_user_followed_communities(&state.db, user_id).await;
+    html!(
+        ul class="list-inside list-disc" {
+            @if communities.is_empty() {
+                li {
+                    span class="mx-1 inline-flex flex font-bold text-gray-700 hover:text-gray-500" {
+                        "Nenhuma comunidade inscritas"
+                    }
+                }
+            }@else{
+                @for community in communities {
+                    li {
+                        a href=(format!("/f/{}", community.nome)) class="mx-1 inline-flex flex font-bold text-gray-700 hover:text-gray-500" {
+                            span class="underline decoration-blue-500" { (format!("f/{}", community.nome)) }
+                            @if community.admin {
+                                span class="ml-2 text-xs px-3 my-1 rounded-lg flex items-center bg-blue-600 text-white" { "admin" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+async fn content(state: AppState, user_id: i64) -> Markup {
     let community_form: Form = Form {
         inputs: vec![
             Input {
@@ -38,14 +64,7 @@ async fn content(_state: AppState) -> Markup {
             div class="w-4/12 lg:block" {
                 h1 class="mb-4 text-xl font-bold text-gray-700" {"Comunidades inscritas"}
                 div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
-                    ul class="list-inside list-disc" {
-                        li {
-                            a href="#" class="mx-1 inline-flex flex font-bold text-gray-700 hover:text-gray-500" {
-                                span class="underline decoration-blue-500" { "f/Comida" }
-                                span class="ml-2 text-xs px-3 my-1 rounded-lg flex items-center bg-blue-600 text-white" { "admin" }
-                            }
-                        }
-                    }
+                    (render_followed_communities(state, user_id).await)
                 }
                 h1 class="my-4 text-xl font-bold text-gray-700" {"Criar comunidade"}
                 (create_form(community_form))
@@ -54,7 +73,7 @@ async fn content(_state: AppState) -> Markup {
     )
 }
 
-pub async fn profile_page(Extension(state): Extension<AppState>, jar: CookieJar) -> impl IntoResponse {
+pub async fn profile_page(Extension(state): Extension<AppState>, Extension(user): Extension<UserJWT>, jar: CookieJar) -> impl IntoResponse {
     let title = "Forust - Home";
-    build_page(&title, content(state).await, jar).await
+    build_page(&title, content(state, user.id).await, jar).await
 }
