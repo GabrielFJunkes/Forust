@@ -11,7 +11,7 @@ async fn render_followed_communities(state: AppState,user_id: i64) -> Markup {
             @if communities.is_empty() {
                 li {
                     span class="mx-1 inline-flex flex font-bold text-gray-700 hover:text-gray-500" {
-                        "Nenhuma comunidade inscritas"
+                        "Nenhuma comunidade inscrita"
                     }
                 }
             }@else{

@@ -1,6 +1,6 @@
 use maud::{html, Markup};
 
-use crate::{app_state::AppState, post::{api::get_posts_data, view::render_posts_preview}};
+use crate::{app_state::AppState, post::{api::get_posts_data, view::render_posts_preview}, community::api::get_if_follows, auth::structs::UserJWT};
 
 use super::structs::{Tag, Community};
 
@@ -80,7 +80,7 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
     )
 }
 
-pub async fn content(state: &AppState, community: Community, logged_in: bool) -> Markup {
+pub async fn content(state: &AppState, community: Community, user: Option<UserJWT>) -> Markup {
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
@@ -95,7 +95,7 @@ pub async fn content(state: &AppState, community: Community, logged_in: bool) ->
                         }
                     }
                 }
-                @if logged_in {
+                @if user.is_some() {
                     (render_create_post(&community.tags, community.id))
                 }
                 (render_posts(state, community.id).await);
@@ -103,7 +103,18 @@ pub async fn content(state: &AppState, community: Community, logged_in: bool) ->
             div class="w-4/12 lg:block" {
                 div class="mb-4 inline-flex flex" {
                     h1 class="text-xl font-bold text-gray-700 md:text-2xl" {"f/" (community.nome)}
-                    a href=(format!("/api/comunidade/{}/seguir", community.id)) class="ml-2 w-fit text-sm px-3 my-1 rounded-lg flex items-center bg-blue-600 text-white" { "Seguir" }
+                    @if let Some(user) = user {
+                        @let follows = get_if_follows(user.id, &(community.id.to_string()), &state.db).await;
+                        a href=(format!("/api/comunidade/{}/seguir", community.id)) 
+                        class="ml-2 w-fit text-sm px-3 my-1 rounded-lg flex items-center bg-blue-600 text-white" { 
+                            @if follows.is_some() {
+                                "Deixar de seguir" 
+                            }@else{
+                                "Seguir"
+                            }
+                        }
+
+                    }
                 }
                 div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
                     (community.desc)

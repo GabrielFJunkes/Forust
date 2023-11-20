@@ -1,6 +1,9 @@
 use axum::response::{IntoResponse, Response};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use maud::{html, Markup, PreEscaped, DOCTYPE};
+
+use crate::auth::structs::UserJWT;
 
 fn header(page_title: &str) -> Markup {
     html! {
@@ -145,6 +148,26 @@ pub fn is_logged_in(cookie: Option<&Cookie>) -> bool {
             !cookie.value().is_empty()
         },
         None => false,
+    }
+}
+
+pub fn is_logged_in_with_data(cookie: Option<&Cookie>) -> Option<UserJWT> {
+    match cookie {
+        Some(cookie) => {
+            if !cookie.value().is_empty() {
+                let token = match cookie.value().split("=").next() {
+                    Some(str) => str,
+                    None => "",
+                };
+                match decode::<UserJWT>(token, &DecodingKey::from_secret("secret".as_ref()), &Validation::new(Algorithm::HS256)) {
+                    Ok(data) => { Some(data.claims) },
+                    Err(_) => { None }
+                }
+            }else{
+                None
+            }
+        },
+        None => None,
     }
 }
 
