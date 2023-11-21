@@ -69,6 +69,14 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
                         }
                     }
                 }
+            }@else{
+                input 
+                name="tag_id"
+                id="nenhum"
+                hidden
+                checked
+                value="NULL"
+                type="radio" {}
             }
             div class="flex items-center justify-between" {
                 button 
