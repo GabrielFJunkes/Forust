@@ -50,7 +50,12 @@ pub async fn create(
 }
 
 pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<Post> {
-    let query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id JOIN comunidades ON posts.comunidade_id = comunidades.id LEFT JOIN tags ON tags.id = posts.tag_id";
+    let query = "SELECT posts.id, posts.titulo, 
+    CASE
+        WHEN LENGTH(posts.body) <= 100 THEN posts.body
+        ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
+    END as body, 
+    usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id JOIN comunidades ON posts.comunidade_id = comunidades.id LEFT JOIN tags ON tags.id = posts.tag_id";
     let result: Result<Vec<Post>, Error>;
     if let Some(community_id) = community_id {
         result = sqlx::query_as::<_, Post>(

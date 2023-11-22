@@ -53,8 +53,12 @@ pub fn render_posts_preview(posts: Vec<Post>) -> Markup {
                             a href="#" class="text-2xl font-bold text-gray-700 hover:underline"{
                                 (post.titulo)
                             }
-                            @for line in post.body.lines() {
-                                p class="mt-2 text-gray-600" { (line) }
+                            @let mut line = post.body.lines();
+                            @if let Some(first_line) = line.next() {
+                                p class="mt-2 text-gray-600" { (first_line) }
+                            }
+                            @if let Some(second_line) = line.next() {
+                                p class="mt-2 text-gray-600" { (second_line) }
                             }
                         }
                     }
