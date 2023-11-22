@@ -43,7 +43,7 @@ pub fn render_posts_preview(posts: Vec<Post>) -> Markup {
                     }
                     div class="lg:w-full" {
                         div class="flex items-center justify-between" {
-                            span class="font-light text-gray-600" { (format!("f/{} - {}", post.community_name, post.created_at)) }
+                            span class="font-light text-gray-600" { (format!("f/{} - {}", post.community_name, post.created_at.date())) }
                             @if let Some(tag_name) = post.tag_name {
                                 a href=(format!("/f/{}?tag={}", post.community_name,tag_name))
                                 class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { (tag_name) }
@@ -53,8 +53,8 @@ pub fn render_posts_preview(posts: Vec<Post>) -> Markup {
                             a href="#" class="text-2xl font-bold text-gray-700 hover:underline"{
                                 (post.titulo)
                             }
-                            p class="mt-2 text-gray-600" {
-                                (post.body)
+                            @for line in post.body.lines() {
+                                p class="mt-2 text-gray-600" { (line) }
                             }
                         }
                     }
