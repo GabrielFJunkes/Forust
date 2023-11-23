@@ -89,6 +89,12 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
 }
 
 pub async fn content(state: &AppState, community: Community, user: Option<UserJWT>) -> Markup {
+    let follows = if let Some(user) = &user {
+        get_if_follows(user.id, &(community.id.to_string()), &state.db).await
+    }else {
+        None
+    };
+        
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
@@ -111,8 +117,7 @@ pub async fn content(state: &AppState, community: Community, user: Option<UserJW
             div class="w-4/12 lg:block" {
                 div class="mb-4 inline-flex flex" {
                     h1 class="text-xl font-bold text-gray-700 md:text-2xl" {"f/" (community.nome)}
-                    @if let Some(user) = user {
-                        @let follows = get_if_follows(user.id, &(community.id.to_string()), &state.db).await;
+                    @if user.is_some() {
                         a href=(format!("/api/comunidade/{}/seguir", community.id)) 
                         class="ml-2 w-fit text-sm px-3 my-1 rounded-lg flex items-center bg-blue-600 text-white" { 
                             @if follows.is_some() {
@@ -129,6 +134,24 @@ pub async fn content(state: &AppState, community: Community, user: Option<UserJW
                 }
                 h1 class="mb-4 mt-10 text-xl font-bold text-gray-700" {"Categorias"}
                 div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
+                    @if let Some(follows) = follows {
+                        @if follows.admin {
+                            form 
+                            action=(format!("/api/comunidade/{}/tag", community.id))
+                            method="POST"
+                            class="flex w-full mb-3" {
+                                input 
+                                name="nome"
+                                class="shadow w-3/4 appearance-none border rounded px-3 py-1 
+                                text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                placeholder="Nome da Tag" {}
+                                button 
+                                class="bg-blue-500 w-1/4 hover:bg-blue-700 text-white font-bold rounded 
+                                focus:outline-none focus:shadow-outline text-sm ml-2 px-2"
+                                type="submit" {"Criar"}
+                            }
+                        }
+                    }
                     ul {
                         (render_tags(community.tags))
                     }

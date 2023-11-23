@@ -4,9 +4,9 @@ use axum::{Extension, Form, response::{Redirect, IntoResponse}, Router, middlewa
 use axum_extra::extract::{CookieJar, cookie::{Cookie, self}};
 use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
-use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::structs::Referer};
+use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};
 
-use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow};
+use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody};
 
 
 pub async fn get_community_data(db: &Pool<MySql>, name: &String) -> Option<Community> {
@@ -86,6 +86,31 @@ pub async fn create(
             )
         },
     }   
+}
+
+pub async fn create_tag(
+    Extension(state): Extension<AppState>,
+    jar: CookieJar, 
+    Extension(referer): Extension<Referer>,
+    Path(id): Path<String>,
+    Form(body): Form<TagBody>, ) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    let query_result = sqlx::query("INSERT INTO tags (nome, comunidade_id) VALUES (?, ?)")
+        .bind(body.nome)
+        .bind(id)
+        .execute(&state.db)
+        .await;
+    match query_result {
+        Ok(_) => {
+            let url = referer.url;
+            let cookie = jar.add(create_cookie("success_msg", "Categoria cadastrada com sucesso.", url.clone()));
+            Ok((cookie, Redirect::to(&url)))
+        },
+        Err(err) => {
+            println!("{err}");
+            let url = referer.url;
+            let cookie = jar.add(create_cookie("error_msg", "Falha ao cadastrar categoria.", url.clone()));
+            Err((cookie, Redirect::to(&url)))},
+    }
 }
 
 pub async fn get_user_followed_communities(db: &Pool<MySql>, user_id: i64) -> Vec<FollowedCommunityData> {
@@ -182,6 +207,7 @@ pub async fn inscrever(
 pub fn create_community_router() -> Router {
     Router::new()
         .route("/", post(create))
+        .route("/:id/tag", post(create_tag))
         .route("/:id/seguir", get(inscrever))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),

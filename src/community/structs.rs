@@ -50,3 +50,8 @@ pub struct CommunityBody {
     pub nome: String,
     pub desc: String
 }
+
+#[derive(Clone, Deserialize)]
+pub struct TagBody {
+    pub nome: String
+}
