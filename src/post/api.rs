@@ -93,7 +93,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
 
     match result {
         Ok(post) => {
-            let comments_query = "SELECT comentarios.id, comentarios.body, usuarios.name as user_name FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id = NULL";
+            let comments_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NULL";
             let result = sqlx::query_as::<_, Comment>(comments_query)
             .bind(post_id)
             .fetch_all(db)

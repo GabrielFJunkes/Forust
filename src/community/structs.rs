@@ -1,7 +1,5 @@
 use serde::Deserialize;
 
-
-
 #[derive(sqlx::FromRow, Clone)]
 pub struct Tag {
     pub id: i64,

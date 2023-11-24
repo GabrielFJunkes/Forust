@@ -28,7 +28,15 @@ pub struct Post {
 pub struct Comment {
     pub id: i64,
     pub body: String,
-    pub user_name: String
+    pub user_name: String,
+    pub created_at: OffsetDateTime
+}
+
+pub struct CommentView {
+    pub body: String,
+    pub user_name: String,
+    pub create_at: OffsetDateTime,
+    pub answers_id_list: Vec<String>
 }
 
 #[derive(Deserialize)]

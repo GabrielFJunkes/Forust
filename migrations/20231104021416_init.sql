@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS `comentarios` (
   `body` text NOT NULL,
   `post_id` integer NOT NULL,
   `usuario_id` integer NOT NULL,
-  `comentario_id` integer
+  `comentario_id` integer,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE `inscricoes` ADD FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
