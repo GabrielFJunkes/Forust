@@ -1,7 +1,11 @@
+use axum::{response::IntoResponse, Extension, extract::Path};
+use axum_extra::extract::CookieJar;
 use maud::{Markup, html};
-use super::structs::Post;
+use crate::{component::page::build_page, app_state::AppState};
 
-pub fn render_posts_preview(posts: Vec<Post>) -> Markup {
+use super::{structs::{PostPreview, Post}, api::get_post_data};
+
+pub fn render_posts_preview(posts: Vec<PostPreview>) -> Markup {
     html!(
         @if posts.is_empty(){
             div class="mt-6 px-5 py-6 bg-white rounded-lg shadow-md container flex justify-between" {
@@ -57,7 +61,7 @@ pub fn render_posts_preview(posts: Vec<Post>) -> Markup {
                             }
                         }
                         div class="mt-2" {
-                            a href="#" class="text-2xl font-bold text-gray-700 hover:underline"{
+                            a href=(format!("/p/{}", post.id)) class="text-2xl font-bold text-gray-700 hover:underline"{
                                 (post.titulo)
                             }
                             @let mut line = post.body.lines();
@@ -73,4 +77,65 @@ pub fn render_posts_preview(posts: Vec<Post>) -> Markup {
             }
         }
     )
+}
+
+pub fn content(post: Post) -> Markup {
+    html!(
+        div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
+            div class="w-4/5 lg:w-8/12" {
+                div class="mt-6 px-5 py-6 bg-white rounded-lg shadow-md container flex justify-between" {
+                    div class="lg:w-full" {
+                        div class="flex items-center justify-between" {
+                            span class="font-light text-gray-600" { 
+                                a 
+                                class="mr-2"
+                                href=(format!("/f/{}", post.community_name)) {
+                                    (format!("f/{}", post.community_name))
+                                }
+                                (post.created_at.date()) 
+                            }
+                            @if let Some(tag_name) = post.tag_name {
+                                a href=(format!("/f/{}?tag={}", post.community_name,tag_name))
+                                class="px-2 py-1 font-bold text-gray-100 bg-gray-600 rounded hover:bg-gray-500" { (tag_name) }
+                            }
+                        }
+                        div class="mt-2" {
+                            span class="text-2xl font-bold text-gray-700 mb-1"{
+                                (post.titulo)
+                            }
+                            @for line in post.body.lines() {
+                                p class="mt-1 text-gray-600" { (line) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+pub fn content_empty() -> Markup {
+    html!(
+        div class="py-8 flex justify-center w-4/5 ml-10" {
+            div class="w-full" {
+                div class="flex items-center justify-between grow" {
+                    h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Essa postagem não existe :("}
+                }
+            }
+        }
+    )
+}
+
+pub async fn post_page(
+    Extension(state): Extension<AppState>,
+    jar: CookieJar,
+    Path(id): Path<String>) -> impl IntoResponse {
+    let post = get_post_data(&state.db, id).await;
+    if let Some(post) = post {
+        let title = format!("Forust - {}", post.titulo);
+        build_page(&title, content(post), jar).await
+    }else{
+        let title = "Forust - Erro";
+        build_page(&title, content_empty(), jar).await
+    }
 }

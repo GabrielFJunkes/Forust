@@ -74,8 +74,7 @@ pub async fn create(
             let jar = jar.add(cookie_ob);
             Ok((jar, Redirect::to(referer.url.as_str())))
         },
-        Err(err) => {
-            println!("{err}");
+        Err(_err) => {
             let mut cookie_ob = Cookie::new("error_msg", "Erro ao criar comunidade.");
             cookie_ob.set_path("/");
             cookie_ob.set_expires(now);
@@ -105,8 +104,7 @@ pub async fn create_tag(
             let cookie = jar.add(create_cookie("success_msg", "Categoria cadastrada com sucesso.", url.clone()));
             Ok((cookie, Redirect::to(&url)))
         },
-        Err(err) => {
-            println!("{err}");
+        Err(_err) => {
             let url = referer.url;
             let cookie = jar.add(create_cookie("error_msg", "Falha ao cadastrar categoria.", url.clone()));
             Err((cookie, Redirect::to(&url)))},
@@ -171,8 +169,7 @@ pub async fn inscrever(
                             Redirect::to(&referer.url)
                         ))
                     },
-                    Err(err) => {
-                        println!("{err}");
+                    Err(_err) => {
                         let mut cookie_ob = Cookie::new("error_msg", "Erro ao deixar de seguir comunidade.");
                         cookie_ob.set_path("/");
                         cookie_ob.set_expires(now);

@@ -1,5 +1,16 @@
 use serde::Deserialize;
-use sqlx::types::time::OffsetDateTime;
+use sqlx::{types::time::OffsetDateTime, Decode};
+
+#[derive(sqlx::FromRow, Clone, Debug)]
+pub struct PostPreview {
+    pub id: i64,
+    pub titulo: String,
+    pub body: String,
+    pub user_name: String,
+    pub community_name: String,
+    pub tag_name: Option<String>,
+    pub created_at: OffsetDateTime
+}
 
 #[derive(sqlx::FromRow, Clone, Debug)]
 pub struct Post {
@@ -9,7 +20,15 @@ pub struct Post {
     pub user_name: String,
     pub community_name: String,
     pub tag_name: Option<String>,
-    pub created_at: OffsetDateTime
+    pub created_at: OffsetDateTime,
+    pub comments: Vec<Comment>
+}
+
+#[derive(sqlx::FromRow, Clone, Debug)]
+pub struct Comment {
+    pub id: i64,
+    pub body: String,
+    pub user_name: String
 }
 
 #[derive(Deserialize)]
