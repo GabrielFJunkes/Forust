@@ -1,10 +1,11 @@
 use std::{time::Duration, collections::HashMap};
-use axum::{routing::post, Router, Extension, response::Redirect, Form, http::HeaderMap, middleware};
+use axum::{routing::post, Router, Extension, response::Redirect, Form, middleware};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
 use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, middleware::get_referer}, post::structs::Comment};
 
-use super::structs::{PostPreview, PostBody, Post};
+use super::structs::{PostPreview, PostBody, Post, CommentSQLData};
+
 
 pub async fn create(
     Extension(state): Extension<AppState>, 
@@ -93,23 +94,69 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
 
     match result {
         Ok(post) => {
-            let comments_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NULL";
-            let result = sqlx::query_as::<_, Comment>(comments_query)
+            let comments_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at, 
+            (SELECT GROUP_CONCAT(rc.id) 
+                FROM comentarios rc 
+                WHERE rc.comentario_id = comentarios.id) AS answers_string
+            FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NULL";
+            let result = sqlx::query_as::<_, CommentSQLData>(comments_query)
             .bind(&post_id)
             .fetch_all(db)
             .await;
             let comments = match result {
-                Ok(comments) => comments,
-                Err(_) => [].to_vec(),
+                Ok(comments) => {
+                    comments.into_iter().map(|data| {
+                        let answers_id = if let Some(data) = data.answers_string {
+                            data
+                            .split(',')
+                            .filter_map(|s| s.parse::<i64>().ok())
+                            .collect::<Vec<i64>>()
+                        }else{
+                            [].to_vec()
+                        };
+                        
+                        Comment {
+                            id: data.id,
+                            body: data.body,
+                            user_name: data.user_name,
+                            created_at: data.created_at,
+                            answers_id,
+                        }
+                    }).collect()
+                },
+                Err(_) => {
+                    [].to_vec()},
             };
-            let answers_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NOT NULL";
-            let result = sqlx::query_as::<_, Comment>(answers_query)
+            let answers_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at, 
+            (SELECT GROUP_CONCAT(rc.id) 
+                FROM comentarios rc 
+                WHERE rc.comentario_id = comentarios.id) AS answers_string
+            FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NOT NULL";
+            let result = sqlx::query_as::<_, CommentSQLData>(answers_query)
             .bind(post_id)
             .fetch_all(db)
             .await;
             let answers = match result {
                 Ok(comments) => {
-                    let answers: HashMap<i64, Comment> = comments.iter().enumerate().map(|(i, x)| (x.id, x.clone())).collect();
+                    let answers: HashMap<i64, Comment> = comments.iter().enumerate().map(|(_, x)| {
+                        let answers_id = if let Some(data) = &x.answers_string {
+                            data
+                            .split(',')
+                            .filter_map(|s| s.parse::<i64>().ok())
+                            .collect::<Vec<i64>>()
+                        }else{
+                            [].to_vec()
+                        };
+                        let comment = Comment {
+                            id: x.id,
+                            body: x.body.clone(),
+                            user_name: x.user_name.clone(),
+                            created_at: x.created_at,
+                            answers_id,
+                        };
+                        
+                        (x.id, comment)
+                    }).collect();
                     answers
                 }
                 Err(_) => {

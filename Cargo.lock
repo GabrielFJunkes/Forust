@@ -1669,6 +1669,7 @@ dependencies = [
  "bcrypt",
  "jsonwebtoken",
  "maud",
+ "rand",
  "serde",
  "sqlx",
  "tokio",

@@ -14,3 +14,4 @@ axum-extra = { version = "0.8.0", features = ["cookie"] }
 serde = { version = "1.0.190", features = ["derive"] }
 bcrypt = "0.15.0"
 jsonwebtoken = "9"
+rand = "0.8.5"

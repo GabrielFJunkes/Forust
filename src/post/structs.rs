@@ -27,12 +27,22 @@ pub struct Post {
     pub answers: HashMap<i64, Comment>
 }
 
+#[derive(sqlx::FromRow, Clone, Debug)]
+pub struct CommentSQLData {
+    pub id: i64,
+    pub body: String,
+    pub user_name: String,
+    pub created_at: OffsetDateTime,
+    pub answers_string: Option<String>
+}
+
 #[derive(sqlx::FromRow, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Comment {
     pub id: i64,
     pub body: String,
     pub user_name: String,
-    pub created_at: OffsetDateTime
+    pub created_at: OffsetDateTime,
+    pub answers_id: Vec<i64>
 }
 
 pub struct CommentView {
