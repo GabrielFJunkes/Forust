@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, collections::HashMap};
 use axum::{routing::post, Router, Extension, response::Redirect, Form, http::HeaderMap, middleware};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
@@ -95,13 +95,28 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
         Ok(post) => {
             let comments_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NULL";
             let result = sqlx::query_as::<_, Comment>(comments_query)
-            .bind(post_id)
+            .bind(&post_id)
             .fetch_all(db)
             .await;
             let comments = match result {
                 Ok(comments) => comments,
                 Err(_) => [].to_vec(),
             };
+            let answers_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NOT NULL";
+            let result = sqlx::query_as::<_, Comment>(answers_query)
+            .bind(post_id)
+            .fetch_all(db)
+            .await;
+            let answers = match result {
+                Ok(comments) => {
+                    let answers: HashMap<i64, Comment> = comments.iter().enumerate().map(|(i, x)| (x.id, x.clone())).collect();
+                    answers
+                }
+                Err(_) => {
+                    HashMap::new()
+                }
+            };
+
             Some(Post{
                 id: post.id,
                 titulo: post.titulo,
@@ -111,11 +126,10 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                 tag_name: post.tag_name,
                 created_at: post.created_at,
                 comments,
-                
+                answers
             })
         },
-        Err(_err) => {
-            None},
+        Err(_err) => {None},
     }
 }
 

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use sqlx::{types::time::OffsetDateTime, Decode};
 
@@ -21,10 +23,11 @@ pub struct Post {
     pub community_name: String,
     pub tag_name: Option<String>,
     pub created_at: OffsetDateTime,
-    pub comments: Vec<Comment>
+    pub comments: Vec<Comment>,
+    pub answers: HashMap<i64, Comment>
 }
 
-#[derive(sqlx::FromRow, Clone, Debug)]
+#[derive(sqlx::FromRow, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Comment {
     pub id: i64,
     pub body: String,
