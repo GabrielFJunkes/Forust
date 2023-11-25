@@ -15,7 +15,7 @@ pub fn create_comment_form(id: i64, post_id: Option<i64>) -> Markup {
     let class_str ;
     if let Some(post_id) = post_id {
         url=format!("/api/comentario/{}/responder/{}", post_id, id);
-        let temp = format!("w-full my-3 hidden peer-checked/comentario{}:block", id);
+        let temp = format!("w-full my-3 peer-checked/comentario{}:hidden", id);
         class_str = temp;
     }else{
         url=format!("/api/comentario/{}", id);
@@ -52,8 +52,8 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
     let random_index = rand::thread_rng().gen_range(0..15);
     let random_color = rand::thread_rng().gen_range(2..8);
     html!(
-        div class=(format!("ml-2 mb-4 w-full border-l-4 border-{}-{}00 pl-2", COLORS.get(random_index).unwrap_or(&"indigo"), random_color)) {
-            input id=(format!("comentario{}", comment.id)) type="checkbox" 
+        div class=(format!("ml-2 mb-4 border-l-4 border-{}-{}00 pl-2", COLORS.get(random_index).unwrap_or(&"indigo"), random_color)) {
+            input id=(format!("comentario{}", comment.id)) type="checkbox" checked
             class=(format!("hidden peer/comentario{}", comment.id)) {}
             div class="flex" {
                 a 
