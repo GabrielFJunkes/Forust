@@ -51,7 +51,7 @@ fn nav(logged: bool) -> Markup {
                 div dir="rtl" class="basis-1/4" {
                     @if logged {
                         div class="text-xl text-gray-800 md:text-base group cursor-pointer w-fit" {
-                            a href="/perfil" class="text-xl text-gray-800 md:text-base block" { "Meu perfil" }
+                            a href="/perfil" class="text-gray-800 text-base block" { "Meu perfil" }
                             div class="hidden group-hover:block absolute mb-1 bg-white border border-gray-200 shadow-lg" {
                                 a href="/api/auth/logout" class="block px-3 py-1 text-sm text-gray-800 hover:bg-gray-100 inline-flex flex"{
                                     ("Logout")
@@ -190,31 +190,6 @@ fn consume_notification_cookie(jar: CookieJar) -> (Option<(String, String)>, Coo
     }
     (notification, new_jar)
 }
-
-
-// pub struct HtmlWithCookies {
-//     html: PreEscaped<String>,
-//     jar: CookieJar,
-// }
-// 
-// impl IntoResponse for HtmlWithCookies {
-//     fn into_response(self) -> Response {
-//     let mut response = self.html.into_response();
-//     for cookie in self.jar.iter() {
-//         response.headers_mut().append(
-//             axum::http::header::SET_COOKIE,
-//             axum::http::HeaderValue::from_str(&cookie.encoded().to_string()).unwrap(),
-//         );
-//     }
-//     if let Some(cookie) = self.jar.get("success_msg") {
-//         response.headers_mut().append(
-//             axum::http::header::SET_COOKIE,
-//             axum::http::HeaderValue::from_str(&cookie.encoded().to_string()).unwrap(),
-//         );
-//     }
-//     response
-//     }
-// }
 
 pub async fn build_page(title: &str, content: Markup, jar: CookieJar) -> impl IntoResponse {
     let logged_in = is_logged_in(jar.get("session_jwt"));
