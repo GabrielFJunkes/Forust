@@ -19,36 +19,7 @@ pub fn render_posts_preview(posts: Vec<PostPreview>) -> Markup {
             @for post in posts {
                 div class="mt-6 px-5 py-6 bg-white rounded-lg shadow-md container flex justify-between" {
                     div class="lg:w-fit flex-col flex content-around justify-center mr-3" {
-                        div {
-                            svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-6 h-6" {
-                                path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M4.5 15.75l7.5-7.5 7.5 7.5" {}
-                            }
-                        }
-                        div class="flex justify-center my-3" { "28" }
-                        div {
-                            svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-6 h-6" {
-                                path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M19.5 8.25l-7.5 7.5-7.5-7.5" {}
-                            }
-                        }
-                    }
+                        (create_ranking(post.ranking, post.id, true, false))}
                     div class="lg:w-full" {
                         div class="flex items-center justify-between" {
                             span class="font-light text-gray-600" { 
@@ -127,7 +98,7 @@ pub fn content(post: Post, logged_in: bool) -> Markup {
                             }
                         }
                         div class="flex"{
-                            (create_ranking(22, post.id, true))
+                            (create_ranking(post.ranking, post.id, true, true))
                         }
                     }
                 }

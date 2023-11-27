@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use maud::{Markup, html};
 use rand::Rng;
 
-use crate::post::structs::Comment;
+use crate::{post::structs::Comment, component::ranking::create_ranking};
 
 const COLORS: &'static [&'static str] = &[
     "red", "amber", "orange", "yellow", "lime", "emerald", "teal", "cyan", "pink", "blue", "indigo",
@@ -52,7 +52,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
     let random_index = rand::thread_rng().gen_range(0..15);
     let random_color = rand::thread_rng().gen_range(2..8);
     html!(
-        div class=(format!("ml-2 mb-4 border-l-4 border-{}-{}00 pl-2", COLORS.get(random_index).unwrap_or(&"indigo"), random_color)) {
+        div class="ml-2 mb-4" {
             input id=(format!("comentario{}", comment.id)) type="checkbox" checked
             class=(format!("hidden peer/comentario{}", comment.id)) {}
             div class="flex" {
@@ -71,31 +71,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
                 }
             }
             div class="flex" {
-                svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="w-5 h-5" {
-                    path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M4.5 15.75l7.5-7.5 7.5 7.5" {}
-                }
-                p class="text-sm mx-2" {"28"}
-                svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="w-5 h-5" {
-                    path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M19.5 8.25l-7.5 7.5-7.5-7.5" {}
-                }
+                (create_ranking(comment.ranking, comment.id, true, true))
                 label for=(format!("comentario{}", comment.id)) 
                 class="text-gray-700 hover:text-gray-500 font-bold rounded 
                 focus:outline-none focus:shadow-outline hover:cursor-pointer ml-2"
@@ -123,9 +99,11 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
             @if logged_in {
                 (create_comment_form(comment.id, Some(post_id)))
             }
-            @for answer_id in comment.answers_id {
-                @if answers.contains_key(&answer_id) {
-                    (render_comment(answers.get(&answer_id).unwrap().clone(), post_id, answers, logged_in))
+            div class=(format!("border-l-4 border-{}-{}00 pl-2", COLORS.get(random_index).unwrap_or(&"indigo"), random_color)){
+                @for answer_id in comment.answers_id {
+                    @if answers.contains_key(&answer_id) {
+                        (render_comment(answers.get(&answer_id).unwrap().clone(), post_id, answers, logged_in))
+                    }
                 }
             }
         }

@@ -55,7 +55,16 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<
         WHEN LENGTH(posts.body) <= 100 THEN posts.body
         ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
     END as body, 
-    usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id JOIN comunidades ON posts.comunidade_id = comunidades.id LEFT JOIN tags ON tags.id = posts.tag_id";
+    usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
+    FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
+    JOIN comunidades ON posts.comunidade_id = comunidades.id 
+    LEFT JOIN tags ON tags.id = posts.tag_id
+    LEFT JOIN (
+        SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+        FROM usuarios_avaliam_posts
+        GROUP BY post_id
+    ) as avaliacoes ON posts.id = avaliacoes.post_id";
     let result: Result<Vec<PostPreview>, Error>;
     if let Some(community_id) = community_id {
         result = sqlx::query_as::<_, PostPreview>(
@@ -75,17 +84,25 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<
         Ok(vec) => {
             vec
         },
-        Err(_err) => {
+        Err(err) => {
+            println!("{}", err);
             [].to_vec()},
     }
 }
 
 pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
     let query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, 
-    comunidades.nome as community_name, tags.nome as tag_name, posts.created_at 
+    comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
     FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
     JOIN comunidades ON posts.comunidade_id = comunidades.id 
-    LEFT JOIN tags ON tags.id = posts.tag_id WHERE posts.id = ?";
+    LEFT JOIN tags ON tags.id = posts.tag_id 
+    LEFT JOIN (
+        SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+        FROM usuarios_avaliam_posts
+        GROUP BY post_id
+    ) as avaliacoes ON posts.id = avaliacoes.post_id
+    WHERE posts.id = ?";
     let result = sqlx::query_as::<_, PostPreview>(
         query)
         .bind(&post_id)
@@ -94,11 +111,18 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
 
     match result {
         Ok(post) => {
-            let comments_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at, 
+            let comments_query = "SELECT c.id, c.body, usuarios.nome as user_name, c.created_at, 
             (SELECT GROUP_CONCAT(rc.id) 
                 FROM comentarios rc 
-                WHERE rc.comentario_id = comentarios.id) AS answers_string
-            FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NULL";
+                WHERE rc.comentario_id = c.id) AS answers_string,
+                CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+            FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
+            LEFT JOIN (
+                SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                FROM usuarios_avaliam_comentarios uac
+                GROUP BY uac.comentario_id
+            ) as avaliacoes ON c.id = avaliacoes.comentario_id
+            WHERE post_id = ? AND c.comentario_id IS NULL";
             let result = sqlx::query_as::<_, CommentSQLData>(comments_query)
             .bind(&post_id)
             .fetch_all(db)
@@ -120,6 +144,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                             body: data.body,
                             user_name: data.user_name,
                             created_at: data.created_at,
+                            ranking: data.ranking,
                             answers_id,
                         }
                     }).collect()
@@ -127,11 +152,18 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                 Err(_) => {
                     [].to_vec()},
             };
-            let answers_query = "SELECT comentarios.id, comentarios.body, usuarios.nome as user_name, comentarios.created_at, 
+            let answers_query = "SELECT c.id, c.body, usuarios.nome as user_name, c.created_at, 
             (SELECT GROUP_CONCAT(rc.id) 
                 FROM comentarios rc 
-                WHERE rc.comentario_id = comentarios.id) AS answers_string
-            FROM comentarios JOIN usuarios ON usuarios.id = comentarios.usuario_id WHERE post_id = ? AND comentario_id IS NOT NULL";
+                WHERE rc.comentario_id = c.id) AS answers_string,
+                CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+            FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
+            LEFT JOIN (
+                SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                FROM usuarios_avaliam_comentarios uac
+                GROUP BY uac.comentario_id
+            ) as avaliacoes ON c.id = avaliacoes.comentario_id
+            WHERE post_id = ? AND c.comentario_id IS NOT NULL";
             let result = sqlx::query_as::<_, CommentSQLData>(answers_query)
             .bind(post_id)
             .fetch_all(db)
@@ -152,6 +184,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                             body: x.body.clone(),
                             user_name: x.user_name.clone(),
                             created_at: x.created_at,
+                            ranking: x.ranking,
                             answers_id,
                         };
                         
@@ -172,6 +205,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                 community_name: post.community_name,
                 tag_name: post.tag_name,
                 created_at: post.created_at,
+                ranking: post.ranking,
                 comments,
                 answers
             })

@@ -2,7 +2,11 @@ use maud::{Markup, html};
 
 
 
-pub fn create_ranking(count: i64, id: i64, is_comment: bool) -> Markup {
+pub fn create_ranking(count: i64, id: i64, is_comment: bool, horizontal: bool) -> Markup {
+    let mut pclass = "flex justify-center my-3";
+    if horizontal {
+        pclass = "text-sm mx-2";
+    }
     html!(
         svg
         xmlns="http://www.w3.org/2000/svg"
@@ -16,7 +20,7 @@ pub fn create_ranking(count: i64, id: i64, is_comment: bool) -> Markup {
             stroke-linejoin="round"
             d="M4.5 15.75l7.5-7.5 7.5 7.5" {}
         }
-        p class="text-sm mx-2" {(count)}
+        p class=(pclass) {(count)}
         svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
