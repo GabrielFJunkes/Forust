@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use axum::{Extension, Form, response::Redirect, extract::Path, Router, middleware, routing::post};
+use axum::{Extension, Form, response::Redirect, extract::Path, Router, middleware, routing::{post, get}};
 use axum_extra::extract::CookieJar;
 use sqlx::types::time::OffsetDateTime;
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};
 
-use super::structs::CommentForm;
+use super::structs::{CommentForm, CommentRanking};
 
 
 
@@ -79,10 +79,90 @@ async fn create_answer(
     }   
 }
 
+async fn avaliate(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path((id, ranking_type)): Path<(String, String)>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let mut now = OffsetDateTime::now_utc();
+    now += Duration::from_secs(1);
+
+    let ranking_type = if ranking_type=="like"{
+        true
+    }else{
+        false
+    };
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+
+    let query_result = sqlx::query_as::<_, CommentRanking>
+        ("SELECT * FROM usuarios_avaliam_comentarios WHERE comentario_id = ? AND usuario_id = ?")
+        .bind(&id)
+        .bind(user.id)
+        .fetch_one(&state.db)
+        .await;
+
+    match query_result {
+        Ok(comment) => {
+            if comment.gostou==ranking_type {
+                let _query_result = sqlx::query(
+                    "DELETE FROM usuarios_avaliam_comentarios WHERE comentario_id = ? AND usuario_id = ?")
+                    .bind(id)
+                    .bind(user.id)
+                    .execute(&state.db)
+                    .await;
+                let jar = jar.add(create_cookie("success_msg", "Avaliação apagada com sucesso.", url));
+                Ok((jar, Redirect::to(referer)))
+            }else{
+                let _query_result = sqlx::query(
+                    "UPDATE usuarios_avaliam_comentarios SET gostou = ? WHERE comentario_id = ? AND usuario_id = ?")
+                    .bind(ranking_type)
+                    .bind(id)
+                    .bind(user.id)
+                    .execute(&state.db)
+                    .await;
+                let jar = jar.add(create_cookie("success_msg", "Comentário avaliado com sucesso.", url));
+                Ok((jar, Redirect::to(referer)))
+            }
+        },
+        Err(_) => {
+            let query_result = sqlx::query(
+                "INSERT INTO usuarios_avaliam_comentarios (comentario_id, usuario_id, gostou) VALUES (?, ?, ?)")
+                .bind(&id)
+                .bind(user.id)
+                .bind(ranking_type)
+                .execute(&state.db)
+                .await;
+        
+        
+            match query_result {
+                Ok(_) => {
+                    let jar = jar.add(create_cookie("success_msg", "Comentário avaliado com sucesso.", url));
+                    Ok((jar, Redirect::to(referer)))
+                },
+                Err(_) => {
+                    let jar = jar.add(create_cookie("error_msg", "Erro ao responder comentário.", url));
+                    Err(
+                        (jar,
+                        Redirect::to(referer))
+                    )       
+                }
+            }  
+        },
+    }
+
+     
+}
+
 pub fn create_comment_router() -> Router {
     Router::new()
         .route("/:id", post(create))
         .route("/:id_post/responder/:id", post(create_answer))
+        .route("/:id/avaliar/:ranking_type", get(avaliate))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

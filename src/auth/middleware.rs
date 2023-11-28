@@ -15,7 +15,6 @@ use super::structs::UserJWT;
 pub async fn logged_in<B>(mut req: Request<B>, next: Next<B>) -> Result<Response, (CookieJar, Redirect)> {
     let header = req.headers();
     let jar = CookieJar::from_headers(header);
-    
     let mut now = OffsetDateTime::now_utc();
     now += Duration::from_secs(1);
     let mut referer = "/";
