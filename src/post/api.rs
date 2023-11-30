@@ -1,10 +1,10 @@
 use std::{time::Duration, collections::HashMap};
-use axum::{routing::post, Router, Extension, response::Redirect, Form, middleware};
+use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
-use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, middleware::get_referer}, post::structs::Comment};
+use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, middleware::get_referer, cookie::create_cookie}, post::structs::Comment};
 
-use super::structs::{PostPreview, PostBody, Post, CommentSQLData};
+use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking};
 
 
 pub async fn create(
@@ -214,10 +214,89 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
     }
 }
 
+async fn avaliate(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path((id, ranking_type)): Path<(String, String)>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let mut now = OffsetDateTime::now_utc();
+    now += Duration::from_secs(1);
+
+    let ranking_type = if ranking_type=="like"{
+        true
+    }else{
+        false
+    };
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+
+    let query_result = sqlx::query_as::<_, PostRanking>
+        ("SELECT * FROM usuarios_avaliam_posts WHERE comentario_id = ? AND usuario_id = ?")
+        .bind(&id)
+        .bind(user.id)
+        .fetch_one(&state.db)
+        .await;
+
+    match query_result {
+        Ok(comment) => {
+            if comment.gostou==ranking_type {
+                let _query_result = sqlx::query(
+                    "DELETE FROM usuarios_avaliam_posts WHERE comentario_id = ? AND usuario_id = ?")
+                    .bind(id)
+                    .bind(user.id)
+                    .execute(&state.db)
+                    .await;
+                let jar = jar.add(create_cookie("success_msg", "Avaliação apagada com sucesso.", url));
+                Ok((jar, Redirect::to(referer)))
+            }else{
+                let _query_result = sqlx::query(
+                    "UPDATE usuarios_avaliam_posts SET gostou = ? WHERE comentario_id = ? AND usuario_id = ?")
+                    .bind(ranking_type)
+                    .bind(id)
+                    .bind(user.id)
+                    .execute(&state.db)
+                    .await;
+                let jar = jar.add(create_cookie("success_msg", "Comentário avaliado com sucesso.", url));
+                Ok((jar, Redirect::to(referer)))
+            }
+        },
+        Err(_) => {
+            let query_result = sqlx::query(
+                "INSERT INTO usuarios_avaliam_posts (comentario_id, usuario_id, gostou) VALUES (?, ?, ?)")
+                .bind(&id)
+                .bind(user.id)
+                .bind(ranking_type)
+                .execute(&state.db)
+                .await;
+        
+        
+            match query_result {
+                Ok(_) => {
+                    let jar = jar.add(create_cookie("success_msg", "Comentário avaliado com sucesso.", url));
+                    Ok((jar, Redirect::to(referer)))
+                },
+                Err(_) => {
+                    let jar = jar.add(create_cookie("error_msg", "Erro ao responder comentário.", url));
+                    Err(
+                        (jar,
+                        Redirect::to(referer))
+                    )       
+                }
+            }  
+        },
+    }
+
+     
+}
 
 pub fn create_post_router() -> Router {
     Router::new()
         .route("/", post(create))
+        .route("/:id/avaliar/:ranking_type", get(avaliate))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

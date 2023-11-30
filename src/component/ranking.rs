@@ -4,11 +4,15 @@ use maud::{Markup, html};
 
 pub fn create_ranking(count: i64, id: i64, is_comment: bool, horizontal: bool) -> Markup {
     let mut pclass = "flex justify-center my-3";
+    let mut route = "post";
+    if is_comment {
+        route = "comentario"
+    }
     if horizontal {
         pclass = "text-sm mx-2";
     }
     html!(
-        a href=(format!("/api/comentario/{}/avaliar/like", id)){
+        a href=(format!("/api/{}/{}/avaliar/like", route, id)){
             svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -23,7 +27,7 @@ pub fn create_ranking(count: i64, id: i64, is_comment: bool, horizontal: bool) -
             }
         }
         p class=(pclass) {(count)}
-        a href=(format!("/api/comentario/{}/avaliar/dislike", id)){
+        a href=(format!("/api/{}/{}/avaliar/dislike", route, id)){
             svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

@@ -49,18 +49,17 @@ pub struct Comment {
     pub ranking: i64
 }
 
-pub struct CommentView {
-    pub body: String,
-    pub user_name: String,
-    pub create_at: OffsetDateTime,
-    pub answers_id_list: Vec<String>,
-    pub ranking: i64
-}
-
 #[derive(Deserialize)]
 pub struct PostBody {
     pub titulo: String,
     pub body: String,
     pub community_id: i64,
     pub tag_id: String
+}
+
+#[derive(sqlx::FromRow)]
+pub struct PostRanking {
+    pub comentario_id: i64, 
+    pub usuario_id: i64, 
+    pub gostou: bool
 }
