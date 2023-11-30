@@ -145,7 +145,7 @@ async fn avaliate(
                     Ok((jar, Redirect::to(referer)))
                 },
                 Err(_) => {
-                    let jar = jar.add(create_cookie("error_msg", "Erro ao responder comentário.", url));
+                    let jar = jar.add(create_cookie("error_msg", "Erro ao avaliar comentário.", url));
                     Err(
                         (jar,
                         Redirect::to(referer))

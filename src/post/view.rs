@@ -19,7 +19,7 @@ pub fn render_posts_preview(posts: Vec<PostPreview>) -> Markup {
             @for post in posts {
                 div class="mt-6 px-5 py-6 bg-white rounded-lg shadow-md container flex justify-between" {
                     div class="lg:w-fit flex-col flex content-around justify-center mr-3" {
-                        (create_ranking(post.ranking, post.id, true, false))}
+                        (create_ranking(post.ranking, post.id, false, false))}
                     div class="lg:w-full" {
                         div class="flex items-center justify-between" {
                             span class="font-light text-gray-600" { 
@@ -98,7 +98,7 @@ pub fn content(post: Post, logged_in: bool) -> Markup {
                             }
                         }
                         div class="flex"{
-                            (create_ranking(post.ranking, post.id, true, true))
+                            (create_ranking(post.ranking, post.id, false, true))
                         }
                     }
                 }

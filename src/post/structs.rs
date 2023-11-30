@@ -59,7 +59,7 @@ pub struct PostBody {
 
 #[derive(sqlx::FromRow)]
 pub struct PostRanking {
-    pub comentario_id: i64, 
+    pub post_id: i64, 
     pub usuario_id: i64, 
     pub gostou: bool
 }

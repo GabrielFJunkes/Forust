@@ -235,7 +235,7 @@ async fn avaliate(
     let referer = &referer;
 
     let query_result = sqlx::query_as::<_, PostRanking>
-        ("SELECT * FROM usuarios_avaliam_posts WHERE comentario_id = ? AND usuario_id = ?")
+        ("SELECT * FROM usuarios_avaliam_posts WHERE post_id = ? AND usuario_id = ?")
         .bind(&id)
         .bind(user.id)
         .fetch_one(&state.db)
@@ -245,7 +245,7 @@ async fn avaliate(
         Ok(comment) => {
             if comment.gostou==ranking_type {
                 let _query_result = sqlx::query(
-                    "DELETE FROM usuarios_avaliam_posts WHERE comentario_id = ? AND usuario_id = ?")
+                    "DELETE FROM usuarios_avaliam_posts WHERE post_id = ? AND usuario_id = ?")
                     .bind(id)
                     .bind(user.id)
                     .execute(&state.db)
@@ -254,19 +254,20 @@ async fn avaliate(
                 Ok((jar, Redirect::to(referer)))
             }else{
                 let _query_result = sqlx::query(
-                    "UPDATE usuarios_avaliam_posts SET gostou = ? WHERE comentario_id = ? AND usuario_id = ?")
+                    "UPDATE usuarios_avaliam_posts SET gostou = ? WHERE post_id = ? AND usuario_id = ?")
                     .bind(ranking_type)
                     .bind(id)
                     .bind(user.id)
                     .execute(&state.db)
                     .await;
-                let jar = jar.add(create_cookie("success_msg", "Comentário avaliado com sucesso.", url));
+                let jar = jar.add(create_cookie("success_msg", "Postagem avaliada com sucesso.", url));
                 Ok((jar, Redirect::to(referer)))
             }
         },
-        Err(_) => {
+        Err(err) => {
+            println!("{err}");
             let query_result = sqlx::query(
-                "INSERT INTO usuarios_avaliam_posts (comentario_id, usuario_id, gostou) VALUES (?, ?, ?)")
+                "INSERT INTO usuarios_avaliam_posts (post_id, usuario_id, gostou) VALUES (?, ?, ?)")
                 .bind(&id)
                 .bind(user.id)
                 .bind(ranking_type)
@@ -276,11 +277,11 @@ async fn avaliate(
         
             match query_result {
                 Ok(_) => {
-                    let jar = jar.add(create_cookie("success_msg", "Comentário avaliado com sucesso.", url));
+                    let jar = jar.add(create_cookie("success_msg", "Postagem avaliada com sucesso.", url));
                     Ok((jar, Redirect::to(referer)))
                 },
                 Err(_) => {
-                    let jar = jar.add(create_cookie("error_msg", "Erro ao responder comentário.", url));
+                    let jar = jar.add(create_cookie("error_msg", "Erro ao avaliar postagem.", url));
                     Err(
                         (jar,
                         Redirect::to(referer))
