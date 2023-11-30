@@ -4,7 +4,7 @@ use sqlx::mysql::MySqlPoolOptions;
 
 use static_rust::{
     home::home_page, 
-    profile::profile_page, 
+    profile::view::profile_page, 
     auth::{
         view::{login_page, regiter_page}, 
         api::create_auth_router, middleware::logged_in

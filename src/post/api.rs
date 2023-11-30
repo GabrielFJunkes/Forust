@@ -264,8 +264,7 @@ async fn avaliate(
                 Ok((jar, Redirect::to(referer)))
             }
         },
-        Err(err) => {
-            println!("{err}");
+        Err(_) => {
             let query_result = sqlx::query(
                 "INSERT INTO usuarios_avaliam_posts (post_id, usuario_id, gostou) VALUES (?, ?, ?)")
                 .bind(&id)
