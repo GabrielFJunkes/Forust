@@ -104,7 +104,7 @@ pub async fn login(Extension(state): Extension<AppState>, jar: CookieJar, Form(b
                         Err((jar.add(cookie_ob), Redirect::to("/login")))
                     }
                 },
-                Err(err) => {
+                Err(_) => {
                     let cookie_ob = create_cookie("error_msg", "Erro interno no servidor.", String::from("/login"));
                     Err((jar.add(cookie_ob), Redirect::to("/login")))
                 },
