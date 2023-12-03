@@ -2,10 +2,10 @@ use axum::{Extension, response::IntoResponse};
 use axum_extra::extract::CookieJar;
 use maud::{html, Markup};
 
-use crate::{app_state::AppState, community::structs::TopCommunity, component::page::build_page, post::{structs::Post, api::get_posts_data, view::render_posts_preview}};
+use crate::{app_state::AppState, community::structs::TopCommunity, component::page::{build_page, is_logged_in_with_data}, post::{structs::Post, api::get_posts_data, view::render_posts_preview}, auth::structs::UserJWT};
 
-async fn render_posts(state: &AppState) -> Markup {
-    let posts = get_posts_data(&state.db, None).await;
+async fn render_posts(state: &AppState, user_id: Option<i64>) -> Markup {
+    let posts = get_posts_data(&state.db, None, user_id).await;
     render_posts_preview(posts)
 }
 
@@ -56,7 +56,12 @@ async fn render_top_communities(communities: Option<Vec<TopCommunity>>) -> Marku
     )
 }
 
-async fn content(state: AppState) -> Markup {
+async fn content(state: AppState, user: Option<UserJWT>) -> Markup {
+    let user_id = if let Some(user) = user {
+        Some(user.id)
+    }else{
+        None
+    };
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
@@ -71,7 +76,7 @@ async fn content(state: AppState) -> Markup {
                         }
                     }
                 }
-                (render_posts(&state).await);
+                (render_posts(&state, user_id).await);
             }
             div class="hidden w-4/12 lg:block" {
                 h1 class="text-xl font-bold text-gray-700 md:text-2xl" {"Comunidades mais populares"}
@@ -88,5 +93,6 @@ async fn content(state: AppState) -> Markup {
 
 pub async fn home_page(Extension(state): Extension<AppState>, jar: CookieJar) -> impl IntoResponse {
     let title = "Forust - Home";
-    build_page(&title, content(state).await, jar).await
+    let is_logged = is_logged_in_with_data(jar.get("session_jwt"));
+    build_page(&title, content(state, is_logged).await, jar).await
 }

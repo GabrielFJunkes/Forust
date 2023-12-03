@@ -4,7 +4,7 @@ use sqlx::mysql::MySqlPoolOptions;
 
 use static_rust::{
     home::home_page, 
-    profile::view::profile_page, 
+    profile::{view::profile_page, api::create_profile_router}, 
     auth::{
         view::{login_page, regiter_page}, 
         api::create_auth_router, middleware::logged_in
@@ -48,7 +48,8 @@ async fn main() {
     .nest("/auth", create_auth_router())
     .nest("/post", create_post_router())
     .nest("/comunidade", create_community_router())
-    .nest("/comentario", create_comment_router());
+    .nest("/comentario", create_comment_router())
+    .nest("/perfil", create_profile_router());
 
     let app = Router::new()
         .route("/perfil", get(profile_page))

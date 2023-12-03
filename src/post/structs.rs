@@ -12,7 +12,8 @@ pub struct PostPreview {
     pub community_name: String,
     pub tag_name: Option<String>,
     pub created_at: OffsetDateTime,
-    pub ranking: i64
+    pub ranking: i64,
+    pub liked: Option<bool>
 }
 
 #[derive(sqlx::FromRow, Clone, Debug)]
@@ -26,7 +27,8 @@ pub struct Post {
     pub created_at: OffsetDateTime,
     pub comments: Vec<Comment>,
     pub answers: HashMap<i64, Comment>,
-    pub ranking: i64
+    pub ranking: i64,
+    pub liked: Option<bool>
 }
 
 #[derive(sqlx::FromRow, Clone, Debug)]
@@ -36,7 +38,8 @@ pub struct CommentSQLData {
     pub user_name: String,
     pub created_at: OffsetDateTime,
     pub answers_string: Option<String>,
-    pub ranking: i64
+    pub ranking: i64,
+    pub liked: Option<bool>
 }
 
 #[derive(sqlx::FromRow, Clone, Debug, PartialEq, Eq, Hash)]
@@ -46,7 +49,8 @@ pub struct Comment {
     pub user_name: String,
     pub created_at: OffsetDateTime,
     pub answers_id: Vec<i64>,
-    pub ranking: i64
+    pub ranking: i64,
+    pub liked: Option<bool>
 }
 
 #[derive(Deserialize)]

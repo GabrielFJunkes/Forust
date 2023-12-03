@@ -71,7 +71,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
                 }
             }
             div class="flex" {
-                (create_ranking(comment.ranking, comment.id, true, true))
+                (create_ranking(comment.ranking, comment.id, true, true, comment.liked))
                 label for=(format!("comentario{}", comment.id)) 
                 class="text-gray-700 hover:text-gray-500 font-bold rounded 
                 focus:outline-none focus:shadow-outline hover:cursor-pointer ml-2"

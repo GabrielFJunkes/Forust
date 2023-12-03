@@ -49,32 +49,56 @@ pub async fn create(
     }   
 }
 
-pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<PostPreview> {
-    let query = "SELECT posts.id, posts.titulo, 
-    CASE
-        WHEN LENGTH(posts.body) <= 100 THEN posts.body
-        ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
-    END as body, 
-    usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
-    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
-    FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
-    JOIN comunidades ON posts.comunidade_id = comunidades.id 
-    LEFT JOIN tags ON tags.id = posts.tag_id
-    LEFT JOIN (
-        SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
-        FROM usuarios_avaliam_posts
-        GROUP BY post_id
-    ) as avaliacoes ON posts.id = avaliacoes.post_id";
+pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id: Option<i64>) -> Vec<PostPreview> {
+    let query: String;
+    if let Some(user_id) = user_id {
+        query = format!("SELECT posts.id, posts.titulo, 
+            CASE
+                WHEN LENGTH(posts.body) <= 100 THEN posts.body
+                ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
+            END as body, 
+            uap.gostou as liked,
+            usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+            CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
+            FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
+            JOIN comunidades ON posts.comunidade_id = comunidades.id 
+            LEFT JOIN tags ON tags.id = posts.tag_id
+            LEFT JOIN (
+                SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                FROM usuarios_avaliam_posts
+                GROUP BY post_id
+            ) as avaliacoes ON posts.id = avaliacoes.post_id
+            LEFT JOIN usuarios_avaliam_posts uap ON uap.post_id=posts.id AND uap.usuario_id = {user_id}");
+    }else{
+        query = String::from("SELECT posts.id, posts.titulo, 
+        CASE
+            WHEN LENGTH(posts.body) <= 100 THEN posts.body
+            ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
+        END as body, 
+        uap.gostou as liked,
+        usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+        CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
+        FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
+        JOIN comunidades ON posts.comunidade_id = comunidades.id 
+        LEFT JOIN tags ON tags.id = posts.tag_id
+        LEFT JOIN (
+            SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+            FROM usuarios_avaliam_posts
+            GROUP BY post_id
+        ) as avaliacoes ON posts.id = avaliacoes.post_id
+        LEFT JOIN usuarios_avaliam_posts uap ON uap.post_id=posts.id AND uap.usuario_id = NULL");
+    }
     let result: Result<Vec<PostPreview>, Error>;
     if let Some(community_id) = community_id {
+        let query_plus = " WHERE posts.comunidade_id = ?";
         result = sqlx::query_as::<_, PostPreview>(
-        &(query.to_owned()+" WHERE posts.comunidade_id = ?"))
+        &(query.to_owned()+&query_plus))
         .bind(community_id)
         .fetch_all(db)
         .await;
     } else {
         result = sqlx::query_as::<_, PostPreview>(
-        query)
+        &query)
         .bind(community_id)
         .fetch_all(db)
         .await;
@@ -90,40 +114,80 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>) -> Vec<
     }
 }
 
-pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
-    let query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, 
-    comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
-    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
-    FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
-    JOIN comunidades ON posts.comunidade_id = comunidades.id 
-    LEFT JOIN tags ON tags.id = posts.tag_id 
-    LEFT JOIN (
-        SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
-        FROM usuarios_avaliam_posts
-        GROUP BY post_id
-    ) as avaliacoes ON posts.id = avaliacoes.post_id
-    WHERE posts.id = ?";
+pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i64>) -> Option<Post> {
+    let query: String;
+    if let Some(user_id) = &user_id {
+        query = format!("SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, 
+        comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+        uap.gostou as liked,
+        CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+        FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
+        JOIN comunidades ON posts.comunidade_id = comunidades.id 
+        LEFT JOIN tags ON tags.id = posts.tag_id 
+        LEFT JOIN (
+            SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+            FROM usuarios_avaliam_posts
+            GROUP BY post_id
+        ) as avaliacoes ON posts.id = avaliacoes.post_id
+        LEFT JOIN usuarios_avaliam_posts uap ON uap.post_id=posts.id AND uap.usuario_id = {user_id}
+        WHERE posts.id = ?")
+    }else{
+        query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, 
+            comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+            uap.gostou as liked,
+            CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+            FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
+            JOIN comunidades ON posts.comunidade_id = comunidades.id 
+            LEFT JOIN tags ON tags.id = posts.tag_id 
+            LEFT JOIN (
+                SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                FROM usuarios_avaliam_posts
+                GROUP BY post_id
+            ) as avaliacoes ON posts.id = avaliacoes.post_id
+            LEFT JOIN usuarios_avaliam_posts uap ON uap.post_id=posts.id AND uap.usuario_id = NULL
+            WHERE posts.id = ?".to_owned();
+    }
     let result = sqlx::query_as::<_, PostPreview>(
-        query)
+        &query)
         .bind(&post_id)
         .fetch_one(db)
         .await;
 
     match result {
         Ok(post) => {
-            let comments_query = "SELECT c.id, c.body, usuarios.nome as user_name, c.created_at, 
-            (SELECT GROUP_CONCAT(rc.id) 
-                FROM comentarios rc 
-                WHERE rc.comentario_id = c.id) AS answers_string,
-                CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
-            FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
-            LEFT JOIN (
-                SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
-                FROM usuarios_avaliam_comentarios uac
-                GROUP BY uac.comentario_id
-            ) as avaliacoes ON c.id = avaliacoes.comentario_id
-            WHERE post_id = ? AND c.comentario_id IS NULL";
-            let result = sqlx::query_as::<_, CommentSQLData>(comments_query)
+            let comments_query: String;
+            if let Some(user_id) = &user_id {
+                comments_query = format!("SELECT c.id, c.body, usuarios.nome as user_name, c.created_at, 
+                uac.gostou as liked,
+                (SELECT GROUP_CONCAT(rc.id) 
+                    FROM comentarios rc 
+                    WHERE rc.comentario_id = c.id) AS answers_string,
+                    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+                FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
+                LEFT JOIN (
+                    SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                    FROM usuarios_avaliam_comentarios uac
+                    GROUP BY uac.comentario_id
+                ) as avaliacoes ON c.id = avaliacoes.comentario_id
+                LEFT JOIN usuarios_avaliam_comentarios uac ON uac.comentario_id=c.id AND uac.usuario_id = {user_id}
+                WHERE post_id = ? AND c.comentario_id IS NULL");
+            }else{
+                comments_query = "SELECT c.id, c.body, usuarios.nome as user_name, c.created_at,
+                uac.gostou as liked, 
+                (SELECT GROUP_CONCAT(rc.id) 
+                    FROM comentarios rc 
+                    WHERE rc.comentario_id = c.id) AS answers_string,
+                    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+                FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
+                LEFT JOIN (
+                    SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                    FROM usuarios_avaliam_comentarios uac
+                    GROUP BY uac.comentario_id
+                ) as avaliacoes ON c.id = avaliacoes.comentario_id
+                LEFT JOIN usuarios_avaliam_comentarios uac ON uac.comentario_id=c.id AND uac.usuario_id = NULL
+                WHERE post_id = ? AND c.comentario_id IS NULL".to_owned();
+            }
+            let result = sqlx::query_as::<_, CommentSQLData>(&comments_query)
             .bind(&post_id)
             .fetch_all(db)
             .await;
@@ -145,26 +209,48 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                             user_name: data.user_name,
                             created_at: data.created_at,
                             ranking: data.ranking,
-                            answers_id,
+                            liked: data.liked,
+                            answers_id
                         }
                     }).collect()
                 },
                 Err(_) => {
                     [].to_vec()},
             };
-            let answers_query = "SELECT c.id, c.body, usuarios.nome as user_name, c.created_at, 
-            (SELECT GROUP_CONCAT(rc.id) 
-                FROM comentarios rc 
-                WHERE rc.comentario_id = c.id) AS answers_string,
-                CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
-            FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
-            LEFT JOIN (
-                SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
-                FROM usuarios_avaliam_comentarios uac
-                GROUP BY uac.comentario_id
-            ) as avaliacoes ON c.id = avaliacoes.comentario_id
-            WHERE post_id = ? AND c.comentario_id IS NOT NULL";
-            let result = sqlx::query_as::<_, CommentSQLData>(answers_query)
+            let answers_query: String;
+            if let Some(user_id) = &user_id {
+                answers_query = format!("SELECT c.id, c.body, usuarios.nome as user_name, c.created_at,
+                uac.gostou as liked, 
+                (SELECT GROUP_CONCAT(rc.id) 
+                    FROM comentarios rc 
+                    WHERE rc.comentario_id = c.id) AS answers_string,
+                    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+                FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
+                LEFT JOIN (
+                    SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                    FROM usuarios_avaliam_comentarios uac
+                    GROUP BY uac.comentario_id
+                ) as avaliacoes ON c.id = avaliacoes.comentario_id
+                LEFT JOIN usuarios_avaliam_comentarios uac ON uac.comentario_id=c.id AND uac.usuario_id = {user_id}
+                WHERE post_id = ? AND c.comentario_id IS NOT NULL");
+            }else{
+                answers_query = "SELECT c.id, c.body, usuarios.nome as user_name, c.created_at,
+                uac.gostou as liked, 
+                (SELECT GROUP_CONCAT(rc.id) 
+                    FROM comentarios rc 
+                    WHERE rc.comentario_id = c.id) AS answers_string,
+                    CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
+                FROM comentarios c JOIN usuarios ON usuarios.id = c.usuario_id 
+                LEFT JOIN (
+                    SELECT uac.comentario_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+                    FROM usuarios_avaliam_comentarios uac
+                    GROUP BY uac.comentario_id
+                ) as avaliacoes ON c.id = avaliacoes.comentario_id
+                LEFT JOIN usuarios_avaliam_comentarios uac ON uac.comentario_id=c.id AND uac.usuario_id = NULL
+                WHERE post_id = ? AND c.comentario_id IS NOT NULL".to_owned();
+            }
+            
+            let result = sqlx::query_as::<_, CommentSQLData>(&answers_query)
             .bind(post_id)
             .fetch_all(db)
             .await;
@@ -185,6 +271,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                             user_name: x.user_name.clone(),
                             created_at: x.created_at,
                             ranking: x.ranking,
+                            liked: x.liked,
                             answers_id,
                         };
                         
@@ -192,7 +279,8 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                     }).collect();
                     answers
                 }
-                Err(_) => {
+                Err(err) => {
+                    println!("{err}");
                     HashMap::new()
                 }
             };
@@ -207,10 +295,12 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String) -> Option<Post> {
                 created_at: post.created_at,
                 ranking: post.ranking,
                 comments,
-                answers
+                answers,
+                liked: post.liked
             })
         },
-        Err(_err) => {None},
+        Err(_) => {
+            None},
     }
 }
 
@@ -220,9 +310,6 @@ async fn avaliate(
     Extension(referer): Extension<Referer>, 
     jar: CookieJar,
     Path((id, ranking_type)): Path<(String, String)>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
-
-    let mut now = OffsetDateTime::now_utc();
-    now += Duration::from_secs(1);
 
     let ranking_type = if ranking_type=="like"{
         true

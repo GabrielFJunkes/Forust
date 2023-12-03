@@ -54,22 +54,6 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
         method: "POST".to_string(),
         rest: None,
     };
-    let profile_form = Form{
-        inputs: vec![
-            Input {
-                name: "Nome".to_string(),
-                id: "nome".to_string(),
-                form_elem: FormElem::Input,
-                input_type: "text".to_string(),
-                placeholder: "Seu nome aqui".to_string()
-            }
-        ],
-        button_title: "Editar".to_string(),
-        button_type: "submit".to_string(),
-        action: "/api/profile".to_string(),
-        method: "POST".to_string(),
-        rest: None,
-    };
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
@@ -77,7 +61,7 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
                     h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Perfil"}
                 }
                 div class="px-5 py-6 bg-white rounded-lg shadow-md container flex justify-between w-full" {
-                    form method="POST" action="/api/profile" class="w-full" {
+                    form method="POST" action="/api/perfil" class="w-full" {
                         div class="flex" {
                             div class="w-2/5" {
                                 label for="nome" {
@@ -124,12 +108,12 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
                                 focus:shadow-outline" {}
                             }
                             div class="w-1/2 ml-3" {
-                                label for="senha" {
+                                label for="senhaConfirma" {
                                     "Confirmar senha"
                                 }
                                 input 
-                                name="senha"
-                                id="senha"
+                                name="senhaConfirma"
+                                id="senhaConfirma"
                                 type="password"
                                 placeholder="*********"
                                 class="shadow appearance-none border rounded w-full 

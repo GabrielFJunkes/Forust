@@ -4,8 +4,8 @@ use crate::{app_state::AppState, post::{api::get_posts_data, view::render_posts_
 
 use super::structs::{Tag, Community};
 
-pub async fn render_posts(state: &AppState, id: i64) -> Markup {
-    let posts = get_posts_data(&state.db, Some(id)).await;
+pub async fn render_posts(state: &AppState, id: i64, user_id: Option<i64>) -> Markup {
+    let posts = get_posts_data(&state.db, Some(id), user_id).await;
     render_posts_preview(posts)
 }
 
@@ -94,6 +94,7 @@ pub async fn content(state: &AppState, community: Community, user: Option<UserJW
     }else {
         None
     };
+
         
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
@@ -109,10 +110,12 @@ pub async fn content(state: &AppState, community: Community, user: Option<UserJW
                         }
                     }
                 }
-                @if user.is_some() {
+                @if let Some(user) = &user {
                     (render_create_post(&community.tags, community.id))
+                    (render_posts(state, community.id, Some(user.id)).await);
+                }@else{
+                    (render_posts(state, community.id, None).await);
                 }
-                (render_posts(state, community.id).await);
             }
             div class="w-4/12 lg:block" {
                 div class="mb-4 inline-flex flex" {
