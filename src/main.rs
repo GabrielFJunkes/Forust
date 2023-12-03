@@ -10,7 +10,7 @@ use static_rust::{
         api::create_auth_router, middleware::logged_in
     }, 
     app_state::AppState, 
-    community::{community_page, api::create_community_router}, post::{api::create_post_router, view::post_page}, component::{middleware::get_referer, page::is_logged_in}, comment::api::create_comment_router
+    community::{community_page, api::create_community_router}, post::{api::create_post_router, view::post_page}, component::middleware::get_referer, comment::api::create_comment_router
 };
 
 async fn fallback(uri: Uri) -> (StatusCode, Markup) {
