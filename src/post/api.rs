@@ -4,7 +4,7 @@ use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
 use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment};
 
-use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking};
+use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking, PostBodyEdit};
 
 
 pub async fn create(
@@ -44,6 +44,44 @@ pub async fn create(
             Err(
                 (jar,
                 Redirect::to(referer.url.as_str()))
+            )
+        },
+    }   
+}
+
+pub async fn edit(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    Path(id): Path<String>,
+    jar: CookieJar,
+    Form(body): Form<PostBodyEdit>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    let query_result = sqlx::query("UPDATE posts SET titulo = ?, body = ?, tag_id = CASE WHEN ? = 'NULL' THEN NULL ELSE ? END WHERE usuario_id = ? AND id = ?")
+        .bind(body.titulo)
+        .bind(body.body)
+        .bind(&body.tag_id)
+        .bind(&body.tag_id)
+        .bind(user.id)
+        .bind(&id)
+        .execute(&state.db)
+        .await;
+
+    match query_result {
+        Ok(_) => {
+            let jar = jar.add(create_cookie("success_msg", "Postagem editada com sucesso.", url));
+            Ok((jar, Redirect::to(format!("/p/{id}").as_str())))
+        },
+        Err(err) => {
+            println!("{err}");
+            let jar = jar.add(create_cookie("error_msg", "Erro ao editar postagem.", url));
+            Err(
+                (jar,
+                Redirect::to(referer))
             )
         },
     }   
@@ -383,6 +421,7 @@ async fn avaliate(
 pub fn create_post_router() -> Router {
     Router::new()
         .route("/", post(create))
+        .route("/:id", post(edit))
         .route("/:id/avaliar/:ranking_type", get(avaliate))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),

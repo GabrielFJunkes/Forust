@@ -10,7 +10,7 @@ use static_rust::{
         api::create_auth_router, middleware::logged_in
     }, 
     app_state::AppState, 
-    community::{community_page, api::create_community_router}, post::{api::create_post_router, view::post_page}, component::middleware::get_referer, comment::api::create_comment_router
+    community::{community_page, api::create_community_router}, post::{api::create_post_router, view::{post_page, edit_post_page}}, component::middleware::get_referer, comment::api::create_comment_router
 };
 
 async fn fallback(uri: Uri) -> (StatusCode, Markup) {
@@ -53,6 +53,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/perfil", get(profile_page))
+        .route("/p/:id/editar", get(edit_post_page))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

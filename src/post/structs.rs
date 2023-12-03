@@ -61,6 +61,13 @@ pub struct PostBody {
     pub tag_id: String
 }
 
+#[derive(Deserialize)]
+pub struct PostBodyEdit {
+    pub titulo: String,
+    pub body: String,
+    pub tag_id: String
+}
+
 #[derive(sqlx::FromRow)]
 pub struct PostRanking {
     pub post_id: i64, 
