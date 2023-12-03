@@ -11,7 +11,7 @@ const COLORS: &'static [&'static str] = &[
 ];
 
 pub fn create_comment_form(id: i64, post_id: Option<i64>) -> Markup {
-    let mut url = String::new();
+    let url: String;
     let class_str ;
     if let Some(post_id) = post_id {
         url=format!("/api/comentario/{}/responder/{}", post_id, id);

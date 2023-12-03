@@ -1,4 +1,4 @@
-use axum::response::{IntoResponse, Response};
+use axum::response::IntoResponse;
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use maud::{html, Markup, PreEscaped, DOCTYPE};

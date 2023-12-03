@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-use rand::Rng;
-
 use axum::{response::IntoResponse, Extension, extract::Path};
 use axum_extra::extract::CookieJar;
 use maud::{Markup, html};
-use crate::{component::{page::{build_page, is_logged_in, is_logged_in_with_data}, ranking::create_ranking}, app_state::AppState, comment::view::{create_comment_form, render_comments}};
+use crate::{component::{page::{build_page, is_logged_in_with_data}, ranking::create_ranking}, app_state::AppState, comment::view::{create_comment_form, render_comments}};
 
-use super::{structs::{PostPreview, Post, Comment}, api::get_post_data};
+use super::{structs::{PostPreview, Post}, api::get_post_data};
 
 
 pub fn render_posts_preview(posts: Vec<PostPreview>) -> Markup {

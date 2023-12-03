@@ -7,7 +7,7 @@ pub async fn get_referer<B>(mut req: Request<B>, next: Next<B>) -> Response {
     let referer = match header.get("referer") {
         Some(url) => {
             let url = url.to_str().unwrap_or("/");
-            let (a, url) = url.match_indices("/").nth(2).map(|(index, _)| url.split_at(index)).unwrap_or(("/", "/"));
+            let (_, url) = url.match_indices("/").nth(2).map(|(index, _)| url.split_at(index)).unwrap_or(("/", "/"));
             url
         },
         None => "/",

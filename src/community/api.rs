@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use axum::{Extension, Form, response::{Redirect, IntoResponse}, Router, middleware, routing::{post, get}, extract::{path, Path}};
-use axum_extra::extract::{CookieJar, cookie::{Cookie, self}};
+use axum::{Extension, Form, response::Redirect, Router, middleware, routing::{post, get}, extract::Path};
+use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};

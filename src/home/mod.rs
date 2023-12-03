@@ -2,7 +2,7 @@ use axum::{Extension, response::IntoResponse};
 use axum_extra::extract::CookieJar;
 use maud::{html, Markup};
 
-use crate::{app_state::AppState, community::structs::TopCommunity, component::page::{build_page, is_logged_in_with_data}, post::{structs::Post, api::get_posts_data, view::render_posts_preview}, auth::structs::UserJWT};
+use crate::{app_state::AppState, community::structs::TopCommunity, component::page::{build_page, is_logged_in_with_data}, post::{api::get_posts_data, view::render_posts_preview}, auth::structs::UserJWT};
 
 async fn render_posts(state: &AppState, user_id: Option<i64>) -> Markup {
     let posts = get_posts_data(&state.db, None, user_id).await;

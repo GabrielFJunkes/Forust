@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
-use sqlx::{types::time::OffsetDateTime, Decode};
+use sqlx::types::time::OffsetDateTime;
 
 #[derive(sqlx::FromRow, Clone, Debug)]
 pub struct PostPreview {

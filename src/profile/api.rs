@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
+use axum::{routing::post, Router, Extension, response::Redirect, Form, middleware};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{encode, Header, EncodingKey};
-use sqlx::{query::Query, MySql, mysql::{MySqlArguments, MySqlQueryResult}, types::time::OffsetDateTime};
-use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, middleware::get_referer, cookie::create_cookie}, post::structs::Comment};
+use sqlx::{mysql::MySqlQueryResult, types::time::OffsetDateTime};
+use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}};
 
 use super::structs::ProfileBody;
 
