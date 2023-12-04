@@ -14,10 +14,7 @@ pub async fn register<'a>(
     jar: CookieJar,
     Form(body): Form<RegisterBody>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
     
-    let url = String::from(match referer.url.rfind('/') {
-        Some(index) => &referer.url[index..],
-        None => "/",
-    });
+    let url = referer.url;
 
     let password = bcrypt::hash(body.senha, 5);
 

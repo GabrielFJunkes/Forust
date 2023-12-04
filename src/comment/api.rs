@@ -4,7 +4,7 @@ use axum::{Extension, Form, response::Redirect, extract::Path, Router, middlewar
 use axum_extra::extract::CookieJar;
 use sqlx::{types::time::OffsetDateTime, Pool, MySql};
 
-use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment, comment::structs::CommentEdit};
+use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}, comment::structs::CommentEdit};
 
 use super::structs::{CommentForm, CommentRanking};
 
@@ -131,7 +131,6 @@ async fn create_answer(
 
 async fn delete(
     Extension(state): Extension<AppState>, 
-    Extension(user): Extension<UserJWT>, 
     Extension(referer): Extension<Referer>, 
     jar: CookieJar,
     Path(id ): Path<String>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {

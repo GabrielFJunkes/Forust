@@ -345,7 +345,6 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i6
 
 async fn delete(
     Extension(state): Extension<AppState>, 
-    Extension(user): Extension<UserJWT>, 
     Extension(referer): Extension<Referer>, 
     jar: CookieJar,
     Path(id ): Path<String>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
