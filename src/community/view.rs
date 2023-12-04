@@ -1,4 +1,4 @@
-use maud::{html, Markup};
+use maud::{html, Markup, PreEscaped};
 
 use crate::{app_state::AppState, post::{api::get_posts_data, view::render_posts_preview}, community::api::get_if_follows, auth::structs::UserJWT, component::cookie::create_cookie};
 
@@ -8,6 +8,30 @@ use axum::{Extension, response::{IntoResponse, Redirect}, extract::Path};
 use axum_extra::extract::CookieJar;
 
 use crate::component::page::{build_page, is_logged_in_with_data};
+
+const VALIDAPOSTSCRIPT: &'static str= "
+function validaPostForm() {
+    var titulo = document.getElementById('titulo').value;
+    var body = document.getElementById('conteudo').value;
+    
+    if (titulo === '[Removido]') {
+        alert('Título inválido. O título não pode ser \"[Removido]\".');
+        return false;
+    }
+
+    if (titulo.length <= 2) {
+        alert('Título deve conter pelo menos 3 caracteres.');
+        return false;
+    }
+
+    if (body.length <= 2) {
+        alert('Corpo da postagem deve conter pelo menos 3 caracteres.');
+        return false;
+    }
+
+    return true;
+}
+";
 
 pub async fn render_posts(state: &AppState, id: i64, user_id: Option<i64>) -> Markup {
     let posts = get_posts_data(&state.db, Some(id), user_id).await;
@@ -49,7 +73,9 @@ fn render_tags(tags: Vec<Tag>, is_admin: bool, name: &str) -> Markup {
 
 fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
     html!(
+        script {(PreEscaped(VALIDAPOSTSCRIPT))}
         form 
+        onsubmit="return validaPostForm()"
         action="/api/post"
         method="POST"
         class="bg-white flex flex-col shadow-md rounded px-8 pt-6 pb-8 mb-4" {

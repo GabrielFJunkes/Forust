@@ -14,6 +14,27 @@ const COLORS: &'static [&'static str] = &[
     "violet", "purple", "rose"
 ];
 
+pub const VALIDACOMMENTSCRIPT: &'static str= "
+function validaCommentForm(id) {
+    var form = document.forms['form-comment-'+id];
+
+    // Retrieve the values from the specific form
+    var body = form['body'].value;
+    
+    if (body === '[Removido]') {
+        alert('Comentário inválido. O comentário não pode ser \"[Removido]\".');
+        return false;
+    }
+
+    if (body.length <= 2) {
+        alert('Comentário deve conter pelo menos 3 caracteres.');
+        return false;
+    }
+
+    return true;
+}
+";
+
 pub fn create_comment_form(id: i64, post_id: Option<i64>) -> Markup {
     let url: String;
     let class_str ;
@@ -27,7 +48,9 @@ pub fn create_comment_form(id: i64, post_id: Option<i64>) -> Markup {
     }
     html!(
         form 
+            onsubmit=(format!("return validaCommentForm({})", id))
             action=(url)
+            name=(format!("form-comment-{}", id))
             method="POST"
             class=(class_str) {
                 textarea 

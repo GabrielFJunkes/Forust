@@ -17,6 +17,21 @@ pub async fn create(
     let referer = url.clone();
     let referer = &referer;
 
+    if body.titulo.len()<2 {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar postagem. Título deve conter pelo menos 3 caracteres.", url));
+        return Err((jar,Redirect::to(referer)))
+    }
+
+    if body.titulo=="[Removido]" {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar postagem. Título não pode ser \"[Removido]\".", url));
+        return Err((jar,Redirect::to(referer)))
+    }
+
+    if body.body.len()<2 {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar postagem. Corpo da postagem deve conter pelo menos 3 caracteres.", url));
+        return Err((jar,Redirect::to(referer)))
+    }
+
     let query_result = sqlx::query("INSERT INTO posts (titulo, body, usuario_id, comunidade_id, tag_id) 
                                         VALUES (?, ?, ?, ?, CASE WHEN ? = 'NULL' THEN NULL ELSE ? END)")
         .bind(body.titulo)

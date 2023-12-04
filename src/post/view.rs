@@ -1,7 +1,7 @@
 use axum::{response::{IntoResponse, Redirect}, Extension, extract::Path};
 use axum_extra::extract::CookieJar;
-use maud::{Markup, html};
-use crate::{component::{page::{build_page, is_logged_in_with_data}, ranking::create_ranking, cookie::create_cookie}, app_state::AppState, comment::view::{create_comment_form, render_comments}, auth::structs::UserJWT, community::{api::{get_community_data, get_if_follows}, structs::{Community, Tag}}};
+use maud::{Markup, html, PreEscaped};
+use crate::{component::{page::{build_page, is_logged_in_with_data}, ranking::create_ranking, cookie::create_cookie}, app_state::AppState, comment::view::{create_comment_form, render_comments, VALIDACOMMENTSCRIPT}, auth::structs::UserJWT, community::{api::{get_community_data, get_if_follows}, structs::{Community, Tag}}};
 
 use super::{structs::{PostPreview, Post}, api::get_post_data};
 
@@ -54,6 +54,7 @@ pub fn render_posts_preview(posts: Vec<PostPreview>) -> Markup {
 pub fn content(post: Post, logged_in: Option<UserJWT>, admin: bool) -> Markup {
     let removed = post.titulo == "[Removido]";
     html!(
+        script{(PreEscaped(VALIDACOMMENTSCRIPT))}
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
                 div class="mt-6 px-5 pb-2 pt-5 bg-white rounded-lg shadow-md container flex justify-between" {
