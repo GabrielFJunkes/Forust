@@ -15,6 +15,7 @@ async fn get_top_communities(state: &AppState) -> Option<Vec<TopCommunity>> {
         SELECT c.id, c.nome, COUNT(i.comunidade_id) AS count
         FROM comunidades AS c
         LEFT JOIN inscricoes AS i ON c.id = i.comunidade_id
+        JOIN usuarios on usuarios.id=i.usuario_id AND usuarios.nome!='[Removido]'
         GROUP BY c.id, c.nome
         ORDER BY count DESC
         LIMIT 10

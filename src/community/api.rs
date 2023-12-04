@@ -93,7 +93,7 @@ pub async fn get_tag_data(db: &Pool<MySql>, id: &String) -> Option<Tag> {
 pub async fn get_community_users(db: &Pool<MySql>, id: i64) -> Vec<User> {
     let query_result = sqlx::query_as::<_, User>("SELECT id, nome, i.admin FROM usuarios u
     JOIN inscricoes i ON u.id = i.usuario_id
-    WHERE i.comunidade_id = ?
+    WHERE i.comunidade_id = ? AND u.nome!='[Removido]'
     ORDER BY i.admin DESC, u.nome")
     .bind(id)
     .fetch_all(db)

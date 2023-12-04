@@ -6,7 +6,6 @@ use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}
 
 use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking, PostBodyEdit};
 
-
 pub async fn create(
     Extension(state): Extension<AppState>, 
     Extension(user): Extension<UserJWT>, 

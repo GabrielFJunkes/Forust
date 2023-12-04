@@ -1,8 +1,31 @@
 use axum::{Extension, response::IntoResponse};
 use axum_extra::extract::CookieJar;
-use maud::{Markup, html};
+use maud::{Markup, html, PreEscaped};
 
 use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::build_page}, auth::structs::UserJWT, community::api::get_user_followed_communities};
+
+const VALIDASCRIPT: &'static str= "
+function validaPerfilForm() {
+    var nome = document.getElementById('nome').value;
+    var senha = document.getElementById('senha').value;
+    var confirmaSenha = document.getElementById('senhaConfirma').value;
+    
+    if (nome === '[Removido]') {
+        alert('Nome inválido. O nome não pode ser \"[Removido]\".');
+        return false;
+    }
+    if (nome.length <= 1) {
+        alert('Nome inválido. O nome precisa ter pelo menos 2 caracteres.');
+        return false;
+    }
+
+    if (senha !== confirmaSenha) {
+        alert('As senhas não coincidem. Por favor, confirme a senha novamente.');
+        return false;
+    }
+    return true;
+}
+";
 
 async fn render_followed_communities(state: AppState,user_id: i64) -> Markup {
     let communities = get_user_followed_communities(&state.db, user_id).await;
@@ -61,7 +84,8 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
                     h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Perfil"}
                 }
                 div class="px-5 py-6 bg-white rounded-lg shadow-md container flex justify-between w-full" {
-                    form method="POST" action="/api/perfil" class="w-full" {
+                    script {(PreEscaped(VALIDASCRIPT))}
+                    form method="POST" onsubmit="return validaPerfilForm()" action="/api/perfil" class="w-full" {
                         div class="flex" {
                             div class="w-2/5" {
                                 label for="nome" {
@@ -125,6 +149,7 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
                             button type="submit"
                             class="mt-3 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded 
                             focus:outline-none focus:shadow-outline" {"Editar"}
+
                             a 
                             href=(format!("/api/perfil/{}", user.id))
                             class="mt-3 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-6 rounded 
