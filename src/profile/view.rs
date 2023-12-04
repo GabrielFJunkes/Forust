@@ -75,6 +75,7 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
         button_type: "submit".to_string(),
         action: "/api/comunidade".to_string(),
         method: "POST".to_string(),
+        onsubmit: "".to_string(),
         rest: None,
     };
     html!(

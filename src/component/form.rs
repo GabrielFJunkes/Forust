@@ -21,6 +21,7 @@ pub struct Form {
     pub button_type: String,
     pub action: String,
     pub method: String,
+    pub onsubmit: String,
     pub rest: Option<Markup>
 }
 
@@ -35,6 +36,7 @@ fn create_input_elem(input_data: Input) -> Markup {
         };
         ("class='shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'")
         "id='"(input_data.id)"'"
+        "required "
         "name='"(input_data.id)"'"
         "placeholder='"(input_data.placeholder)"'"
         (PreEscaped(">"))
@@ -50,6 +52,7 @@ pub fn create_form(form_data: Form) -> Markup {
         form 
         action=(form_data.action)
         method=(form_data.method)
+        onsubmit=(form_data.onsubmit)
         class="bg-white flex flex-col shadow-md rounded px-8 pt-6 pb-8 mb-4" {
             @for input_data in form_data.inputs {
                 div class="mb-6" {

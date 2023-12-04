@@ -16,6 +16,11 @@ pub async fn register<'a>(
     
     let url = referer.url;
 
+    if body.nome == "[Removido]" {
+        let jar = jar.add(create_cookie("error_msg", "Nome de usuário inválido.", String::from("/register")));
+        return Err((jar, Redirect::to("/register")))
+    }
+
     let password = bcrypt::hash(body.senha, 5);
 
     if let Ok(password) = password {

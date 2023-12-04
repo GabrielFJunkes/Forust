@@ -25,6 +25,7 @@ fn login() -> Markup {
         button_type: "submit".to_string(),
         action: "/api/auth/login".to_string(),
         method: "POST".to_string(),
+        onsubmit: "".to_string(),
         rest: Some(html!(
             a class="inline-block mx-5 align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" href="register"
                 {"Não tem cadastro?"}
@@ -41,6 +42,24 @@ fn login() -> Markup {
         }
     )
 }
+
+const VALIDAREGISTERSCRIPT: &'static str= "
+function validaRegisterForm() {
+    var nome = document.getElementById('nome').value;
+    var senha = document.getElementById('senha').value;
+    
+    if (nome === '[Removido]') {
+        alert('Nome inválido. O nome não pode ser \"[Removido]\".');
+        return false;
+    }
+
+    if (senha.length <= 1) {
+        alert('Senha inválida. A senha precisa ter pelo menos 2 caracteres.');
+        return false;
+    }
+    return true;
+}
+";
 
 fn register() -> Markup {
     let form = Form {
@@ -71,11 +90,13 @@ fn register() -> Markup {
         button_type: "submit".to_string(),
         action: "/api/auth/register".to_string(),
         method: "POST".to_string(),
+        onsubmit: "return validaRegisterForm()".to_owned(),
         rest: None,
     };
     html!(
         div class="flex-grow flex flex-col items-center justify-center" {
             div {
+                script {(PreEscaped(VALIDAREGISTERSCRIPT))}
                 (create_form(form));
                 p class="text-center text-gray-500 text-xs max-w-md" {
                     {(PreEscaped("&copy;")) "2023 Forust. All rights reserved."}
