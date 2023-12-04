@@ -2,7 +2,7 @@ use std::{time::Duration, collections::HashMap};
 use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
-use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment};
+use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment, comment::api::edit_comment};
 
 use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking, PostBodyEdit};
 
@@ -423,6 +423,7 @@ pub fn create_post_router() -> Router {
         .route("/", post(create))
         .route("/:id", post(edit))
         .route("/:id/avaliar/:ranking_type", get(avaliate))
+        .route("/:id/comentario/:comentario_id", post(edit_comment))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

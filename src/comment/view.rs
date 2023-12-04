@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
+use axum::{Extension, extract::Path, response::{IntoResponse, Redirect}};
+use axum_extra::extract::CookieJar;
 use maud::{Markup, html};
 use rand::Rng;
 
-use crate::{post::structs::Comment, component::ranking::create_ranking};
+use crate::{post::structs::Comment, component::{ranking::create_ranking, page::build_page, structs::Referer, cookie::create_cookie}, auth::structs::UserJWT, app_state::AppState};
+
+use super::{api::get_comment_data, structs::CommentEdit};
 
 const COLORS: &'static [&'static str] = &[
     "red", "amber", "orange", "yellow", "lime", "emerald", "teal", "cyan", "pink", "blue", "indigo",
@@ -40,15 +44,15 @@ pub fn create_comment_form(id: i64, post_id: Option<i64>) -> Markup {
 }
 
 
-pub fn render_comments (comments: Vec<Comment>, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: bool) -> Markup {
+pub fn render_comments (comments: Vec<Comment>, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: Option<UserJWT>) -> Markup {
     html!(
         @for comment in comments{
-            (render_comment(comment, post_id, answers, logged_in))
+            (render_comment(comment, post_id, answers, &logged_in))
         }
     )
 }
 
-pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: bool) -> Markup {
+pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: &Option<UserJWT>) -> Markup {
     let random_index = rand::thread_rng().gen_range(0..15);
     let random_color = rand::thread_rng().gen_range(2..8);
     html!(
@@ -95,8 +99,31 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
                         6.741v6.018z" {}
                     }
                 }
+                @if let Some(user) = logged_in {
+                    @if user.nome == comment.user_name {
+                        a class="ml-2 text-gray-700 hover:text-blue-500 font-bold rounded 
+                        focus:outline-none focus:shadow-outline hover:cursor-pointer right-1"
+                        href=(format!("/c/{}/editar", comment.id)) {
+                            svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke-width="1.5" 
+                            stroke="currentColor" 
+                            class="w-5 h-5"{
+                                path 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 
+                                1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 
+                                0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" 
+                                {}
+                            }
+                        }
+                    }
+                }
             }
-            @if logged_in {
+            @if logged_in.is_some() {
                 (create_comment_form(comment.id, Some(post_id)))
             }
             div class=(format!("border-l-4 border-{}-{}00 pl-2", COLORS.get(random_index).unwrap_or(&"indigo"), random_color)){
@@ -109,3 +136,67 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
         }
     )
 }
+
+fn render_edit_comment(comment: CommentEdit) -> Markup {
+    html!(
+        form 
+        action=(format!("/api/post/{}/comentario/{}", comment.post_id, comment.id))
+        method="POST"
+        class="bg-white flex flex-col shadow-md rounded px-8 pt-6 pb-8 mb-4" {
+            div class="mb-6" {
+                label class="block text-gray-700 text-sm font-bold mb-2" for="body" { "Comentário" }
+                textarea 
+                id="body"
+                name="body"
+                placeholder="Título da sua postagem"
+                class="shadow appearance-none border rounded w-full py-2 px-3 
+                text-gray-700 leading-tight focus:outline-none focus:shadow-outline" {(comment.body)}
+            }
+            div class="flex items-center justify-between" {
+                button 
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded 
+                focus:outline-none focus:shadow-outline mx-auto w-full" 
+                type="submit" { "Editar" }
+            }
+        }
+    )
+}
+
+fn content_edit(comment: CommentEdit) -> Markup {
+    html!(
+        div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
+            div class="mt-6 px-5 pb-2 pt-5 bg-white rounded-lg container flex justify-between" {
+                div class="w-full" {
+                    (render_edit_comment(comment))
+                }
+            }
+        }
+    )
+}
+
+pub async fn edit_comment_page(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path(id): Path<String>, ) -> impl IntoResponse {
+    let title = "Forust - Editar";
+    if let Some(comment) = get_comment_data(&state.db, id).await {
+        if user.id == comment.usuario_id {
+            Ok(build_page(&title, content_edit(comment), jar).await)
+        }else{
+            let jar = jar.add(create_cookie("error_msg", "Você não tem permissão para editar esse comentário.", referer.url.clone()));
+            Err(
+                (jar,
+                Redirect::to(&referer.url))
+            ) 
+        }
+    }else {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao editar comentário.", referer.url.clone()));
+        Err(
+            (jar,
+            Redirect::to(&referer.url))
+        ) 
+    }
+}
+

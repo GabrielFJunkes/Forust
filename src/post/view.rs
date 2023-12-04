@@ -130,7 +130,7 @@ pub fn content(post: Post, logged_in: Option<UserJWT>) -> Markup {
                         @if logged_in.is_some() {
                             (create_comment_form(post.id, None))
                         }
-                        (render_comments(post.comments, post.id, &post.answers, logged_in.is_some()))
+                        (render_comments(post.comments, post.id, &post.answers, logged_in))
                     }
                 }
             }

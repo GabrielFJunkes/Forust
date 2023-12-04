@@ -2,13 +2,63 @@ use std::time::Duration;
 
 use axum::{Extension, Form, response::Redirect, extract::Path, Router, middleware, routing::{post, get}};
 use axum_extra::extract::CookieJar;
-use sqlx::types::time::OffsetDateTime;
+use sqlx::{types::time::OffsetDateTime, Pool, MySql};
 
-use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};
+use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment, comment::structs::CommentEdit};
 
 use super::structs::{CommentForm, CommentRanking};
 
+pub async fn get_comment_data(db: &Pool<MySql>, id: String) -> Option<CommentEdit> {
+    let query_result = sqlx::query_as::<_, CommentEdit>("SELECT id, body, usuario_id, post_id FROM comentarios WHERE id=?")
+    .bind(id)
+    .fetch_one(db)
+    .await;
+    match query_result {
+        Ok(result) => {
+            Some(result)
+        }
+        Err(_) => {
+            None
+        }
+    }
+}
 
+pub async fn edit_comment(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    Path((post_id, id)): Path<(String,String)>,
+    jar: CookieJar,
+    Form(body): Form<CommentForm>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    let query_result = sqlx::query("UPDATE comentarios SET body = ? WHERE usuario_id = ? AND id = ?")
+        .bind(body.body)
+        .bind(user.id)
+        .bind(&id)
+        .execute(&state.db)
+        .await;
+
+    match query_result {
+        Ok(_) => {
+            let path = format!("/p/{post_id}");
+            let jar = jar.add(create_cookie("success_msg", "Comentário editado com sucesso.", path.clone()));
+            Ok((jar, Redirect::to(&path)))
+        },
+        Err(err) => {
+            println!("{err}");
+            println!("{referer}");
+            let jar = jar.add(create_cookie("error_msg", "Erro ao editar comentário.", url));
+            Err(
+                (jar,
+                Redirect::to(referer))
+            )
+        },
+    }   
+}
 
 async fn create(
     Extension(state): Extension<AppState>, 
