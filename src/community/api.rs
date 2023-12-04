@@ -296,10 +296,46 @@ pub async fn inscrever(
     }
 }
 
+async fn admin(Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path((id, user_id, tipo)): Path<(String, String, String)>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    
+    let tipo = if tipo=="add"{
+        true
+    }else{
+        false
+    };
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+
+    let query_result = sqlx::query(
+        "UPDATE inscricoes SET admin = ? WHERE comunidade_id = ? AND usuario_id = ?")
+        .bind(tipo)
+        .bind(id)
+        .bind(user_id)
+        .execute(&state.db)
+        .await;
+    match query_result {
+        Ok(_) => {
+            let jar = jar.add(create_cookie("success_msg", "Ação realizada com sucesso.", url));
+            Ok((jar, Redirect::to(referer)))
+        },
+        Err(_) => {
+            let jar = jar.add(create_cookie("error_msg", "Erro ao realizar ação.", url));
+            Err((jar, Redirect::to(referer)))
+        },
+    }
+}
+
 pub fn create_community_router() -> Router {
     Router::new()
         .route("/", post(create))
         .route("/:id", post(edit))
+        .route("/:id/admin/:id/:tipo", get(admin))
         .route("/:id/tag", post(create_tag))
         .route("/:id/seguir", get(inscrever))
         .route("/:id/tag/:tag_id", post(edit_tag))

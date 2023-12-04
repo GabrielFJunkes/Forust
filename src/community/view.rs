@@ -354,12 +354,47 @@ fn render_edit_community(community: &Community) -> Markup {
 
 fn render_users(community: &Community, users: Vec<User>) -> Markup {
     html!(
-        ul {
+        ul class="list-disc shadow-md rounded px-8 pt-6 pb-8 mb-4" {
             @for user in users {
-                li {
-                    (user.nome) 
+                li class="flex mb-2"{
                     @if user.admin {
-                        " - admin"
+                        span class="underline decoration-sky-500/30" {
+                            (user.nome) 
+                        }
+                        a 
+                        href=(format!("/api/comunidade/{}/admin/{}/rem", community.id, user.id))
+                        title="Tirar admin" 
+                        class="ml-2 grid content-center text-gray-700 hover:text-red-500 font-bold rounded 
+                        focus:outline-none focus:shadow-outline hover:cursor-pointer"{
+                            svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke-width="1.5" 
+                            stroke="currentColor" 
+                            class="w-5 h-5" {
+                                path stroke-linecap="round" stroke-linejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" {}
+                            }
+                        }
+                    }@else{
+                        span {
+                            (user.nome) 
+                        }
+                        a
+                        href=(format!("/api/comunidade/{}/admin/{}/add", community.id, user.id))
+                        title="Adicionar admin"
+                        class="ml-2 grid content-center text-gray-700 hover:text-green-500 font-bold rounded 
+                        focus:outline-none focus:shadow-outline hover:cursor-pointer" {
+                            svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke-width="1.5" 
+                            stroke="currentColor" 
+                            class="w-5 h-5" {
+                                path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" {}
+                            }
+                        }
                     }
                 }
             }
@@ -377,6 +412,9 @@ fn edit_content(community: &Community, users: Vec<User>) -> Markup {
                 (render_users(community, users))
             }
             div class="w-4/12 lg:block" {
+                div class="flex items-center justify-between grow" {
+                    h1 class="mb-4 text-xl font-bold text-gray-700 md:text-2xl " {(community.nome)}
+                }
                 (render_edit_community(community))
             }
         }
