@@ -129,6 +129,36 @@ async fn create_answer(
     }   
 }
 
+async fn delete(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path(id ): Path<String>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    
+    let query_result = sqlx::query(
+    "UPDATE comentarios SET body = '[Removido]' WHERE id = ?")
+    .bind(id)
+    .execute(&state.db)
+    .await;
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    match query_result {
+        Ok(_) => {
+            let jar = jar.add(create_cookie("success_msg", "Comentário removido com sucesso.", url));
+            Ok((jar, Redirect::to(referer)))
+        },
+        Err(_) => {
+            let jar = jar.add(create_cookie("error_msg", "Erro ao remover comentário.", url));
+            Err((jar, Redirect::to(referer)))
+        },
+    }
+
+}
+
 async fn avaliate(
     Extension(state): Extension<AppState>, 
     Extension(user): Extension<UserJWT>, 
@@ -211,6 +241,7 @@ async fn avaliate(
 pub fn create_comment_router() -> Router {
     Router::new()
         .route("/:id", post(create))
+        .route("/:id/excluir", get(delete))
         .route("/:id_post/responder/:id", post(create_answer))
         .route("/:id/avaliar/:ranking_type", get(avaliate))
         .route_layer(middleware::from_fn(

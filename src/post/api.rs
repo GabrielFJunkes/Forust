@@ -96,7 +96,7 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
                 ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
             END as body, 
             uap.gostou as liked,
-            usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+            usuarios.nome AS user_name, comunidades.id as community_id, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
             CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
             FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
             JOIN comunidades ON posts.comunidade_id = comunidades.id 
@@ -114,7 +114,7 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
             ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
         END as body, 
         uap.gostou as liked,
-        usuarios.nome AS user_name, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+        usuarios.nome AS user_name, comunidades.id as community_id, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
         CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
         FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
         JOIN comunidades ON posts.comunidade_id = comunidades.id 
@@ -156,7 +156,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i6
     let query: String;
     if let Some(user_id) = &user_id {
         query = format!("SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, 
-        comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+        comunidades.id as community_id, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
         uap.gostou as liked,
         CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
         FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
@@ -171,7 +171,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i6
         WHERE posts.id = ?")
     }else{
         query = "SELECT posts.id, posts.titulo, posts.body, usuarios.nome AS user_name, 
-            comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+            comunidades.id as community_id, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
             uap.gostou as liked,
             CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking 
             FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
@@ -329,6 +329,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i6
                 body: post.body,
                 user_name: post.user_name,
                 community_name: post.community_name,
+                community_id: post.community_id,
                 tag_name: post.tag_name,
                 created_at: post.created_at,
                 ranking: post.ranking,
@@ -340,6 +341,37 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i6
         Err(_) => {
             None},
     }
+}
+
+async fn delete(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path(id ): Path<String>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    
+    let query_result = sqlx::query(
+    "UPDATE posts SET titulo = '[Removido]', body = '[Removido]' WHERE id = ?")
+    .bind(id)
+    .execute(&state.db)
+    .await;
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    match query_result {
+        Ok(_) => {
+            let jar = jar.add(create_cookie("success_msg", "Postagem removida com sucesso.", url));
+            Ok((jar, Redirect::to(referer)))
+        },
+        Err(err) => {
+            println!("{err}");
+            let jar = jar.add(create_cookie("error_msg", "Erro ao remover postagem.", url));
+            Err((jar, Redirect::to(referer)))
+        },
+    }
+
 }
 
 async fn avaliate(
@@ -423,6 +455,7 @@ pub fn create_post_router() -> Router {
         .route("/", post(create))
         .route("/:id", post(edit))
         .route("/:id/avaliar/:ranking_type", get(avaliate))
+        .route("/:id/excluir", get(delete))
         .route("/:id/comentario/:comentario_id", post(edit_comment))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),

@@ -44,7 +44,7 @@ pub async fn edit(
 pub async fn edit_tag(
     Extension(state): Extension<AppState>, 
     Extension(referer): Extension<Referer>, 
-    Path((post_id, id)): Path<(String,String)>,
+    Path((_post_id, id)): Path<(String,String)>,
     jar: CookieJar,
     Form(body): Form<TagBodyWithName>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
 
@@ -297,7 +297,6 @@ pub async fn inscrever(
 }
 
 async fn admin(Extension(state): Extension<AppState>, 
-    Extension(user): Extension<UserJWT>, 
     Extension(referer): Extension<Referer>, 
     jar: CookieJar,
     Path((id, user_id, tipo)): Path<(String, String, String)>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
