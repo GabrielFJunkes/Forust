@@ -44,17 +44,18 @@ pub fn create_comment_form(id: i64, post_id: Option<i64>) -> Markup {
 }
 
 
-pub fn render_comments (comments: Vec<Comment>, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: Option<UserJWT>) -> Markup {
+pub fn render_comments (comments: Vec<Comment>, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: Option<UserJWT>, admin: bool) -> Markup {
     html!(
         @for comment in comments{
-            (render_comment(comment, post_id, answers, &logged_in))
+            (render_comment(comment, post_id, answers, &logged_in, admin))
         }
     )
 }
 
-pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: &Option<UserJWT>) -> Markup {
+pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Comment>, logged_in: &Option<UserJWT>, admin: bool) -> Markup {
     let random_index = rand::thread_rng().gen_range(0..15);
     let random_color = rand::thread_rng().gen_range(2..8);
+    let removed = comment.body == "[Removido]";
     html!(
         div class="ml-2 mb-4" {
             input id=(format!("comentario{}", comment.id)) type="checkbox" checked
@@ -100,7 +101,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
                     }
                 }
                 @if let Some(user) = logged_in {
-                    @if user.nome == comment.user_name {
+                    @if user.nome == comment.user_name && !removed {
                         a class="ml-2 text-gray-700 hover:text-blue-500 font-bold rounded 
                         focus:outline-none focus:shadow-outline hover:cursor-pointer right-1"
                         href=(format!("/c/{}/editar", comment.id)) {
@@ -121,7 +122,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
                             }
                         }
                     }
-                    @if user.nome == comment.user_name {
+                    @if (user.nome == comment.user_name || admin) && !removed {
                         a class="ml-2 text-gray-700 hover:text-red-500 font-bold rounded 
                         focus:outline-none focus:shadow-outline hover:cursor-pointer"
                         href=(format!("/api/comentario/{}/excluir", comment.id)) {
@@ -154,7 +155,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
             div class=(format!("border-l-4 border-{}-{}00 pl-2", COLORS.get(random_index).unwrap_or(&"indigo"), random_color)){
                 @for answer_id in comment.answers_id {
                     @if answers.contains_key(&answer_id) {
-                        (render_comment(answers.get(&answer_id).unwrap().clone(), post_id, answers, logged_in))
+                        (render_comment(answers.get(&answer_id).unwrap().clone(), post_id, answers, logged_in, admin))
                     }
                 }
             }

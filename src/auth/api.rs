@@ -18,9 +18,23 @@ pub async fn register<'a>(
         Some(index) => &referer.url[index..],
         None => "/",
     });
+
     let password = bcrypt::hash(body.senha, 5);
 
     if let Ok(password) = password {
+
+        let query_username = sqlx::query_as::<_, UserName>("SELECT nome FROM usuarios WHERE nome = ? AND nome != '[Removido]'")
+        .bind(&body.nome)
+        .fetch_optional(&state.db)
+        .await;
+
+        if let Ok(username) = query_username {
+            if username.is_some() {
+                let jar = jar.add(create_cookie("error_msg", "Nome de usuário já existe.", String::from("/register")));
+                return Err((jar, Redirect::to("/register")))
+            }
+        };
+
         let query_result = sqlx::query("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)")
             .bind(body.nome)
             .bind(body.email)

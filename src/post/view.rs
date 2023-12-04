@@ -52,6 +52,7 @@ pub fn render_posts_preview(posts: Vec<PostPreview>) -> Markup {
 }
 
 pub fn content(post: Post, logged_in: Option<UserJWT>, admin: bool) -> Markup {
+    let removed = post.titulo == "[Removido]";
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
@@ -97,7 +98,7 @@ pub fn content(post: Post, logged_in: Option<UserJWT>, admin: bool) -> Markup {
                         div class="flex"{
                             (create_ranking(post.ranking, post.id, false, true, post.liked))
                             @if let Some(user) = &logged_in {
-                                @if user.nome == post.user_name {
+                                @if user.nome == post.user_name && !removed {
                                     a class="ml-2 text-gray-700 hover:text-blue-500 font-bold rounded 
                                     focus:outline-none focus:shadow-outline hover:cursor-pointer right-1"
                                     href=(format!("/p/{}/editar", post.id)) {
@@ -118,7 +119,7 @@ pub fn content(post: Post, logged_in: Option<UserJWT>, admin: bool) -> Markup {
                                         }
                                     }
                                 }
-                                @if user.nome == post.user_name || admin {
+                                @if (user.nome == post.user_name || admin) && !removed {
                                     a class="ml-2 text-gray-700 hover:text-red-500 font-bold rounded 
                                     focus:outline-none focus:shadow-outline hover:cursor-pointer"
                                     href=(format!("/api/post/{}/excluir", post.id)) {
@@ -155,7 +156,7 @@ pub fn content(post: Post, logged_in: Option<UserJWT>, admin: bool) -> Markup {
                         @if logged_in.is_some() {
                             (create_comment_form(post.id, None))
                         }
-                        (render_comments(post.comments, post.id, &post.answers, logged_in))
+                        (render_comments(post.comments, post.id, &post.answers, logged_in, admin))
                     }
                 }
             }

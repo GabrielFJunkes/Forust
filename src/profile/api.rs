@@ -4,7 +4,7 @@ use axum::{routing::post, Router, Extension, response::Redirect, Form, middlewar
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{encode, Header, EncodingKey};
 use sqlx::{mysql::MySqlQueryResult, types::time::OffsetDateTime};
-use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}};
+use crate::{app_state::AppState, auth::{middleware::logged_in, structs::{UserJWT, UserName}}, component::{structs::Referer, cookie::create_cookie}};
 
 use super::structs::ProfileBody;
 
@@ -20,6 +20,19 @@ pub async fn create(
     let url = referer.url;
     let referer = url.clone();
     let referer = &referer;
+
+    let query_username = sqlx::query_as::<_, UserName>("SELECT nome FROM usuarios WHERE nome = ? AND nome != '[Removido]' AND id!=?")
+    .bind(&body.nome)
+    .bind(&user.id)
+    .fetch_optional(&state.db)
+    .await;
+
+    if let Ok(username) = query_username {
+        if username.is_some() {
+            let jar = jar.add(create_cookie("error_msg", "Nome de usuário já existe.", url));
+            return Err((jar, Redirect::to(&referer)))
+        }
+    };
 
     let query_result: Result<MySqlQueryResult, sqlx::Error>;
     if body.senha.len()>0 {
@@ -63,8 +76,19 @@ pub async fn create(
             let cookie = jar.add(create_cookie("success_msg", "Perfil editado com sucesso.", url));
             Ok((cookie, Redirect::to(referer)))
         },
-        Err(_) => {
-            let cookie = jar.add(create_cookie("error_msg", "Falha ao editar perfil.", url));
+        Err(err) => {
+            let cookie = match err {
+                sqlx::Error::Database(error) => {
+                    if error.is_unique_violation() {
+                        jar.add(create_cookie("error_msg", "Email já está em uso.", url))
+                    }else{
+                        jar.add(create_cookie("error_msg", "Falha ao editar perfil.", url))
+                    }
+                },
+                _ => {
+                    jar.add(create_cookie("error_msg", "Falha ao editar perfil.", url))
+                },
+            };
             Err((cookie, Redirect::to(referer)))
         }
     }

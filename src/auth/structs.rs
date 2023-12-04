@@ -22,6 +22,11 @@ pub struct UserLogin {
     pub senha: String
 }
 
+#[derive(sqlx::FromRow)]
+pub struct UserName {
+    pub nome: String
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserJWT {
     pub exp: i64,
