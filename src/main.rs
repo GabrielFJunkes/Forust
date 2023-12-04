@@ -10,7 +10,7 @@ use static_rust::{
         api::create_auth_router, middleware::logged_in
     }, 
     app_state::AppState, 
-    community::{view::community_page, api::create_community_router}, post::{api::create_post_router, view::{post_page, edit_post_page}}, component::middleware::get_referer, comment::{api::create_comment_router, view::edit_comment_page}
+    community::{view::{community_page, edit_tag_page, edit_community_page}, api::create_community_router}, post::{api::create_post_router, view::{post_page, edit_post_page}}, component::middleware::get_referer, comment::{api::create_comment_router, view::edit_comment_page}
 };
 
 async fn fallback(uri: Uri) -> (StatusCode, Markup) {
@@ -55,6 +55,8 @@ async fn main() {
         .route("/perfil", get(profile_page))
         .route("/p/:id/editar", get(edit_post_page))
         .route("/c/:id/editar", get(edit_comment_page))
+        .route("/f/:name/tag/:id/editar", get(edit_tag_page))
+        .route("/f/:name/editar", get(edit_community_page))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

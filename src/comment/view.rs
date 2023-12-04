@@ -148,7 +148,7 @@ fn render_edit_comment(comment: CommentEdit) -> Markup {
                 textarea 
                 id="body"
                 name="body"
-                placeholder="Título da sua postagem"
+                placeholder="Comentário"
                 class="shadow appearance-none border rounded w-full py-2 px-3 
                 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" {(comment.body)}
             }

@@ -6,8 +6,103 @@ use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};
 
-use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody};
+use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody, TagBodyWithName, CommunityBodyEdit, User};
 
+pub async fn edit(
+    Extension(state): Extension<AppState>, 
+    Extension(referer): Extension<Referer>, 
+    Path(nome): Path<String>,
+    jar: CookieJar,
+    Form(body): Form<CommunityBodyEdit>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    let query_result = sqlx::query("UPDATE comunidades SET `desc` = ? WHERE nome = ?")
+        .bind(body.desc)
+        .bind(&nome)
+        .execute(&state.db)
+        .await;
+
+    match query_result {
+        Ok(_) => {
+            let path = format!("/f/{}", nome);
+            let jar = jar.add(create_cookie("success_msg", "Comunidade editada com sucesso.", path.clone()));
+            Ok((jar, Redirect::to(&path)))
+        },
+        Err(_) => {
+            let jar = jar.add(create_cookie("error_msg", "Erro ao editar comunidade.", url));
+            Err(
+                (jar,
+                Redirect::to(referer))
+            )
+        },
+    }   
+}
+
+pub async fn edit_tag(
+    Extension(state): Extension<AppState>, 
+    Extension(referer): Extension<Referer>, 
+    Path((post_id, id)): Path<(String,String)>,
+    jar: CookieJar,
+    Form(body): Form<TagBodyWithName>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    let query_result = sqlx::query("UPDATE tags SET nome = ? WHERE id = ?")
+        .bind(body.nome)
+        .bind(&id)
+        .execute(&state.db)
+        .await;
+
+    match query_result {
+        Ok(_) => {
+            let path = format!("/f/{}", body.nome_comunidade);
+            let jar = jar.add(create_cookie("success_msg", "Tag editada com sucesso.", path.clone()));
+            Ok((jar, Redirect::to(&path)))
+        },
+        Err(err) => {
+            println!("{err}");
+            let jar = jar.add(create_cookie("error_msg", "Erro ao editar tag.", url));
+            Err(
+                (jar,
+                Redirect::to(referer))
+            )
+        },
+    }   
+}
+
+pub async fn get_tag_data(db: &Pool<MySql>, id: &String) -> Option<Tag> {
+    let query_result = sqlx::query_as::<_, Tag>("SELECT id, nome FROM tags WHERE id=?")
+    .bind(id)
+    .fetch_one(db)
+    .await;
+    match query_result {
+        Ok(result) => {
+            Some(result)
+        }
+        Err(_) => {
+            None
+        },
+    }
+}
+
+pub async fn get_community_users(db: &Pool<MySql>, id: i64) -> Vec<User> {
+    let query_result = sqlx::query_as::<_, User>("SELECT id, nome, i.admin FROM usuarios u
+    JOIN inscricoes i ON u.id = i.usuario_id
+    WHERE i.comunidade_id = ?
+    ORDER BY i.admin DESC, u.nome")
+    .bind(id)
+    .fetch_all(db)
+    .await;
+    match query_result {
+        Ok(result) => result,
+        Err(_) => [].to_vec()
+    }
+}
 
 pub async fn get_community_data(db: &Pool<MySql>, name: &String) -> Option<Community> {
     let query_result = sqlx::query_as::<_, CommunityData>("SELECT id, nome, `desc` FROM comunidades WHERE nome=?")
@@ -204,8 +299,10 @@ pub async fn inscrever(
 pub fn create_community_router() -> Router {
     Router::new()
         .route("/", post(create))
+        .route("/:id", post(edit))
         .route("/:id/tag", post(create_tag))
         .route("/:id/seguir", get(inscrever))
+        .route("/:id/tag/:tag_id", post(edit_tag))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))
