@@ -185,6 +185,7 @@ fn render_edit_post(post: Post, tags: Vec<Tag>) -> Markup {
             div class="mb-6" {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="titulo" { "Título" }
                 input 
+                required
                 id="titulo"
                 value=(post.titulo)
                 name="titulo"
@@ -196,6 +197,7 @@ fn render_edit_post(post: Post, tags: Vec<Tag>) -> Markup {
             div class="mb-6" {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="conteudo" { "Conteúdo" }
                 textarea 
+                required
                 id="conteudo"
                 name="body"
                 placeholder="O conteúdo da sua postagem"

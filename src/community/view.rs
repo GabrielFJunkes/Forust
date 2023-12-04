@@ -57,6 +57,7 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
             div class="mb-6" {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="titulo" { "Título" }
                 input 
+                required
                 id="titulo"
                 name="titulo"
                 type="text"
@@ -67,6 +68,7 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
             div class="mb-6" {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="conteudo" { "Conteúdo" }
                 textarea 
+                required
                 id="conteudo"
                 name="body"
                 placeholder="O conteúdo da sua postagem"

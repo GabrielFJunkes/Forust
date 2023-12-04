@@ -13,8 +13,9 @@ pub async fn create(
     jar: CookieJar,
     Form(body): Form<PostBody>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
 
-    let mut now = OffsetDateTime::now_utc();
-    now += Duration::from_secs(1);
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
 
     let query_result = sqlx::query("INSERT INTO posts (titulo, body, usuario_id, comunidade_id, tag_id) 
                                         VALUES (?, ?, ?, ?, CASE WHEN ? = 'NULL' THEN NULL ELSE ? END)")
@@ -29,20 +30,14 @@ pub async fn create(
 
     match query_result {
         Ok(_) => {
-            let mut cookie_ob = Cookie::new("success_msg", "Postagem criada com sucesso.");
-            cookie_ob.set_path("/");
-            cookie_ob.set_expires(now);
-            let jar = jar.add(cookie_ob);
-            Ok((jar, Redirect::to(referer.url.as_str())))
+            let jar = jar.add(create_cookie("success_msg", "Postagem criada com sucesso.", url));
+            Ok((jar, Redirect::to(referer)))
         },
         Err(_err) => {
-            let mut cookie_ob = Cookie::new("error_msg", "Erro ao criar postagem.");
-            cookie_ob.set_path("/");
-            cookie_ob.set_expires(now);
-            let jar = jar.add(cookie_ob);
+            let jar = jar.add(create_cookie("error_msg", "Erro ao criar postagem.", url));
             Err(
                 (jar,
-                Redirect::to(referer.url.as_str()))
+                Redirect::to(referer))
             )
         },
     }   
