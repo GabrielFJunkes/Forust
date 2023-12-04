@@ -121,9 +121,16 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
                                 focus:shadow-outline" {}
                             }
                         }
-                        button type="submit"
-                        class="mt-3 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded 
-                        focus:outline-none focus:shadow-outline" {"Editar"}
+                        div class="flex justify-between" {
+                            button type="submit"
+                            class="mt-3 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded 
+                            focus:outline-none focus:shadow-outline" {"Editar"}
+                            a 
+                            href=(format!("/api/perfil/{}", user.id))
+                            class="mt-3 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-6 rounded 
+                            focus:outline-none focus:shadow-outline"
+                            {"Excluir conta"}
+                        }
                     }
                 }
             }

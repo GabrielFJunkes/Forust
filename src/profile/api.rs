@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use axum::{routing::post, Router, Extension, response::Redirect, Form, middleware};
+use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{encode, Header, EncodingKey};
 use sqlx::{mysql::MySqlQueryResult, types::time::OffsetDateTime};
@@ -95,9 +95,50 @@ pub async fn create(
 
 }
 
+async fn delete(
+    Extension(state): Extension<AppState>, 
+    Extension(user): Extension<UserJWT>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path(id): Path<String>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+
+    if user.id.to_string() != id {
+        let jar = jar.add(create_cookie("error_msg", "Você não tem permissão para excluir essa conta.", url));
+        return Err((jar, Redirect::to(referer)))
+    }
+
+    let query_result = sqlx::query(
+    "UPDATE usuarios SET nome = '[Removido]', email = NULL WHERE id = ?")
+    .bind(id)
+    .execute(&state.db)
+    .await;
+
+    
+    match query_result {
+        Ok(_) => {
+            let jar = jar.add(create_cookie("success_msg", "Postagem removida com sucesso.", url));
+            let mut cookie = Cookie::named("session_jwt");
+                cookie.set_path("/");
+            let jar = jar.remove(cookie);
+            Ok((jar, Redirect::to("/")))
+        },
+        Err(_) => {
+            let jar = jar.add(create_cookie("error_msg", "Erro ao remover postagem.", url));
+            Err((jar, Redirect::to(referer)))
+        },
+    }
+
+}
+
+
 pub fn create_profile_router() -> Router {
     Router::new()
         .route("/", post(create))
+        .route("/:id", get(delete))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))
