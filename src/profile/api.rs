@@ -15,8 +15,7 @@ pub async fn get_user_by_name(db: &Pool<MySql>, name: &String) -> Option<User> {
     .await;
     match query_result {
         Ok(result) => result,
-        Err(err) => {
-            println!("{err}");
+        Err(_) => {
             None},
     }
 }

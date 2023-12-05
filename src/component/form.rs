@@ -8,9 +8,10 @@ pub enum FormElem {
 
 #[derive(Clone)]
 pub struct Input {
-    pub name: String,
+    pub title: String,
     pub form_elem: FormElem,
     pub id: String,
+    pub name: String,
     pub input_type: String,
     pub placeholder: String
 }
@@ -37,7 +38,7 @@ fn create_input_elem(input_data: Input) -> Markup {
         ("class='shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'")
         "id='"(input_data.id)"'"
         "required "
-        "name='"(input_data.id)"'"
+        "name='"(input_data.name)"'"
         "placeholder='"(input_data.placeholder)"'"
         (PreEscaped(">"))
         @match input_data.form_elem {
@@ -57,7 +58,7 @@ pub fn create_form(form_data: Form) -> Markup {
             @for input_data in form_data.inputs {
                 div class="mb-6" {
                     label class="block text-gray-700 text-sm font-bold mb-2" for=(input_data.id) {
-                        (input_data.name)
+                        (input_data.title)
                     }
                     (create_input_elem(input_data))
                 }

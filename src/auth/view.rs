@@ -7,14 +7,16 @@ fn login() -> Markup {
     let form = Form {
         inputs: vec![
             Input {
-                name: "Email".to_string(),
+                title: "Email".to_string(),
+                name: "email".to_string(),
                 id: "email".to_string(),
                 form_elem: FormElem::Input,
                 input_type: "email".to_string(),
                 placeholder: "usuario@email.com".to_string()
             },
             Input {
-                name: "Senha".to_string(),
+                title: "Senha".to_string(),
+                name: "senha".to_string(),
                 id: "senha".to_string(),
                 form_elem: FormElem::Input,
                 input_type: "password".to_string(),
@@ -65,21 +67,24 @@ fn register() -> Markup {
     let form = Form {
         inputs: vec![
             Input {
-                name: "Nome".to_string(),
+                title: "Nome".to_string(),
+                name: "nome".to_string(),
                 id: "nome".to_string(),
                 form_elem: FormElem::Input,
                 input_type: "text".to_string(),
                 placeholder: "Nome".to_string()
             },
             Input {
-                name: "Email".to_string(),
+                title: "Email".to_string(),
+                name: "email".to_string(),
                 id: "email".to_string(),
                 form_elem: FormElem::Input,
                 input_type: "email".to_string(),
                 placeholder: "usuario@email.com".to_string()
             },
             Input {
-                name: "Senha".to_string(),
+                title: "Senha".to_string(),
+                name: "senha".to_string(),
                 id: "senha".to_string(),
                 form_elem: FormElem::Input,
                 input_type: "password".to_string(),

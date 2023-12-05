@@ -48,9 +48,7 @@ pub async fn edit_comment(
             let jar = jar.add(create_cookie("success_msg", "Comentário editado com sucesso.", path.clone()));
             Ok((jar, Redirect::to(&path)))
         },
-        Err(err) => {
-            println!("{err}");
-            println!("{referer}");
+        Err(_) => {
             let jar = jar.add(create_cookie("error_msg", "Erro ao editar comentário.", url));
             Err(
                 (jar,

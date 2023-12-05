@@ -85,8 +85,7 @@ pub async fn edit(
             let jar = jar.add(create_cookie("success_msg", "Postagem editada com sucesso.", url));
             Ok((jar, Redirect::to(format!("/p/{id}").as_str())))
         },
-        Err(err) => {
-            println!("{err}");
+        Err(_) => {
             let jar = jar.add(create_cookie("error_msg", "Erro ao editar postagem.", url));
             Err(
                 (jar,
@@ -171,7 +170,6 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
         }else{
             query.push_str(&format!(" ORDER BY ranking DESC"))
         }
-        println!("{query}");
         result = sqlx::query_as::<_, PostPreview>(
         &query)
         .bind(community_id)
@@ -183,8 +181,7 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
         Ok(vec) => {
             vec
         },
-        Err(err) => {
-            println!("{}", err);
+        Err(_) => {
             [].to_vec()},
     }
 }
@@ -222,8 +219,7 @@ pub async fn get_user_posts_data(db: &Pool<MySql>, user_id: i64, logged_user_id:
         Ok(vec) => {
             vec
         },
-        Err(err) => {
-            println!("{}", err);
+        Err(_) => {
             [].to_vec()},
     }
 }
@@ -343,8 +339,7 @@ pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i6
                     }).collect();
                     answers
                 }
-                Err(err) => {
-                    println!("{err}");
+                Err(_) => {
                     HashMap::new()
                 }
             };
@@ -390,8 +385,7 @@ async fn delete(
             let jar = jar.add(create_cookie("success_msg", "Postagem removida com sucesso.", url));
             Ok((jar, Redirect::to(referer)))
         },
-        Err(err) => {
-            println!("{err}");
+        Err(_) => {
             let jar = jar.add(create_cookie("error_msg", "Erro ao remover postagem.", url));
             Err((jar, Redirect::to(referer)))
         },

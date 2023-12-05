@@ -29,6 +29,32 @@ function validaPerfilForm() {
 }
 ";
 
+const VALIDACOMUNIDADESCRIPT: &'static str= "
+function validaComunidadeForm() {
+    var nome = document.getElementById('nomeComunidade').value;
+    var desc = document.getElementById('descComunidade').value;
+    
+    if (nome === '[Removido]') {
+        alert('Nome inválido. O nome não pode ser \"[Removido]\".');
+        return false;
+    }
+    if (nome.length <= 1) {
+        alert('Nome inválido. O nome precisa ter pelo menos 2 caracteres.');
+        return false;
+    }
+
+    if (desc === '[Removido]') {
+        alert('Descrição inválida. A descrição não pode ser \"[Removido]\".');
+        return false;
+    }
+    if (desc.length <= 1) {
+        alert('Descrição inválida. A descrição precisa ter pelo menos 2 caracteres.');
+        return false;
+    }
+    return true;
+}
+";
+
 fn render_followed_communities(communities: Vec<FollowedCommunityData>
 ) -> Markup {
     html!(
@@ -59,15 +85,17 @@ fn content_own(user: UserJWT, followed_communities: Vec<FollowedCommunityData>, 
     let community_form: Form = Form {
         inputs: vec![
             Input {
-                name: "Nome".to_string(),
-                id: "nome".to_string(),
+                title: "Nome".to_string(),
+                name: "nome".to_string(),
+                id: "nomeComunidade".to_string(),
                 form_elem: FormElem::Input,
                 input_type: "text".to_string(),
                 placeholder: "NomeDaComunidade".to_string()
             },
             Input {
-                name: "Descrição".to_string(),
-                id: "desc".to_string(),
+                title: "Descrição".to_string(),
+                name: "desc".to_string(),
+                id: "descComunidade".to_string(),
                 form_elem: FormElem::TextArea,
                 input_type: "text".to_string(),
                 placeholder: "Uma pequena descrição sobre a comunidade".to_string()
@@ -77,7 +105,7 @@ fn content_own(user: UserJWT, followed_communities: Vec<FollowedCommunityData>, 
         button_type: "submit".to_string(),
         action: "/api/comunidade".to_string(),
         method: "POST".to_string(),
-        onsubmit: "".to_string(),
+        onsubmit: "return validaComunidadeForm()".to_string(),
         rest: None,
     };
     html!(
@@ -172,6 +200,7 @@ fn content_own(user: UserJWT, followed_communities: Vec<FollowedCommunityData>, 
                     (render_followed_communities(followed_communities))
                 }
                 h1 class="my-4 text-xl font-bold text-gray-700" {"Criar comunidade"}
+                script {(PreEscaped(VALIDACOMUNIDADESCRIPT))}
                 (create_form(community_form))
             }
         }

@@ -79,8 +79,7 @@ pub async fn edit_tag(
             let jar = jar.add(create_cookie("success_msg", "Tag editada com sucesso.", path.clone()));
             Ok((jar, Redirect::to(&path)))
         },
-        Err(err) => {
-            println!("{err}");
+        Err(_) => {
             let jar = jar.add(create_cookie("error_msg", "Erro ao editar tag.", url));
             Err(
                 (jar,
