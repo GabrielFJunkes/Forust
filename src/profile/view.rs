@@ -2,7 +2,7 @@ use axum::{Extension, response::IntoResponse, extract::Path};
 use axum_extra::extract::CookieJar;
 use maud::{Markup, html, PreEscaped};
 
-use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::{build_page, is_logged_in_with_data}}, auth::structs::UserJWT, community::{api::get_user_followed_communities, structs::{FollowedCommunityData, CommunityParams}}, post::{structs::PostPreview, api::{get_posts_data, get_user_posts_data}, view::render_posts_preview}};
+use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::{build_page, is_logged_in_with_data}}, auth::structs::UserJWT, community::{api::get_user_followed_communities, structs::FollowedCommunityData}, post::{structs::PostPreview, api::get_user_posts_data, view::render_posts_preview}};
 
 use super::{api::get_user_by_name, structs::User};
 
@@ -55,7 +55,7 @@ fn render_followed_communities(communities: Vec<FollowedCommunityData>
     )
 }
 
-fn content_own(user: UserJWT, followedCommunities: Vec<FollowedCommunityData>, posts: Vec<PostPreview>) -> Markup {
+fn content_own(user: UserJWT, followed_communities: Vec<FollowedCommunityData>, posts: Vec<PostPreview>) -> Markup {
     let community_form: Form = Form {
         inputs: vec![
             Input {
@@ -169,7 +169,7 @@ fn content_own(user: UserJWT, followedCommunities: Vec<FollowedCommunityData>, p
             div class="w-4/12 lg:block" {
                 h1 class="mb-4 text-xl font-bold text-gray-700" {"Comunidades inscritas"}
                 div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
-                    (render_followed_communities(followedCommunities))
+                    (render_followed_communities(followed_communities))
                 }
                 h1 class="my-4 text-xl font-bold text-gray-700" {"Criar comunidade"}
                 (create_form(community_form))

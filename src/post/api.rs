@@ -152,6 +152,9 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
         .fetch_all(db)
         .await;
     } else {
+        if let Some(search) = &params.search {
+            query.push_str(&format!(" WHERE (posts.titulo LIKE '%{search}%' OR posts.body LIKE '%{search}%')"))
+        }
         if let Some(filter) = &params.filter {
             match filter.as_str() {
                 "recente" => {
@@ -168,6 +171,7 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
         }else{
             query.push_str(&format!(" ORDER BY ranking DESC"))
         }
+        println!("{query}");
         result = sqlx::query_as::<_, PostPreview>(
         &query)
         .bind(community_id)

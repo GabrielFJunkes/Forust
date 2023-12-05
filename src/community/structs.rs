@@ -10,6 +10,7 @@ pub struct Tag {
 #[derive(Deserialize)]
 pub struct CommunityParams {
     pub tag: Option<String>,
+    pub search: Option<String>,
     pub filter: Option<String>
 }
 
