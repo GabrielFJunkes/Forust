@@ -1,7 +1,7 @@
-use std::{time::Duration, collections::HashMap};
+use std::collections::HashMap;
 use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
-use axum_extra::extract::{CookieJar, cookie::Cookie};
-use sqlx::{types::time::OffsetDateTime, Pool, MySql, Error};
+use axum_extra::extract::CookieJar;
+use sqlx::{Pool, MySql, Error};
 use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment, comment::api::edit_comment};
 
 use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking, PostBodyEdit};
