@@ -80,7 +80,7 @@ pub fn render_comment (comment: Comment, post_id: i64, answers: &HashMap<i64, Co
     let random_color = rand::thread_rng().gen_range(2..8);
     let removed = comment.body == "[Removido]";
     html!(
-        div class="ml-2 mb-4" {
+        div class="ml-2 my-2" {
             input id=(format!("comentario{}", comment.id)) type="checkbox" checked
             class=(format!("hidden peer/comentario{}", comment.id)) {}
             div class="flex" {
