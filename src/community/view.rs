@@ -42,27 +42,86 @@ fn render_tags(tags: Vec<Tag>, is_admin: bool, name: &str) -> Markup {
     html!(
         @for tag in tags {
             li class="flex" {
-                a href=(format!("?tag={}", tag.nome)) class="mx-1 inline-flex flex font-bold text-gray-700 hover:text-gray-600 hover:underline" {
-                    "- "(tag.nome)
+                @if tag.status {
+                    a 
+                    href=(format!("?tag={}", tag.nome)) 
+                    class="mx-1 inline-flex flex font-bold text-gray-700 hover:text-gray-600 hover:underline" {
+                        "- "(tag.nome)
+                    }
+                }@else{
+                    a 
+                    href=(format!("?tag={}", tag.nome)) 
+                    class="mx-1 line-through inline-flex flex font-bold text-gray-700 hover:text-gray-600 hover:underline" {
+                        "- "(tag.nome)
+                    }
                 }
+                
                 @if is_admin {
-                    a class="ml-2 grid content-center text-gray-700 hover:text-blue-500 font-bold rounded 
-                    focus:outline-none focus:shadow-outline hover:cursor-pointer right-1"
-                    href=(format!("/f/{name}/tag/{}/editar", tag.id)) {
-                        svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke-width="1.5" 
-                        stroke="currentColor" 
-                        class="w-5 h-5"{
-                            path 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
-                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 
-                            1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 
-                            0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" 
-                            {}
+                    @if tag.status {
+                        a
+                        title="Editar tag"  
+                        class="ml-2 grid content-center text-gray-700 hover:text-blue-500 font-bold rounded 
+                        focus:outline-none focus:shadow-outline hover:cursor-pointer"
+                        href=(format!("/f/{name}/tag/{}/editar", tag.id)) {
+                            svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke-width="1.5" 
+                            stroke="currentColor" 
+                            class="w-5 h-5"{
+                                path 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 
+                                1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 
+                                0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" 
+                                {}
+                            }
+                        }
+                        a
+                        title="Desativar tag" 
+                        class="ml-2 grid content-center text-gray-700 hover:text-red-500 font-bold rounded 
+                            focus:outline-none focus:shadow-outline hover:cursor-pointer"
+                            href=(format!("/api/comunidade/{name}/tag/{}/excluir", tag.id)) {
+                                svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke-width="1.5" 
+                                stroke="currentColor" 
+                                class="w-5 h-5"{
+                                    path 
+                                    stroke-linecap="round" 
+                                    stroke-linejoin="round" 
+                                    d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 
+                                    2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 
+                                    7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 
+                                    13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 
+                                    7.5h17.25c.621 0 1.125-.504
+                                     1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 
+                                     0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 
+                                     1.125z" {}
+                                }
+                            }
+                    }@else{
+                        a 
+                        title="Ativar tag"
+                        class="ml-2 grid content-center text-gray-700 hover:text-blue-500 font-bold rounded 
+                        focus:outline-none focus:shadow-outline hover:cursor-pointer"
+                        href=(format!("/api/comunidade/{name}/tag/{}/ativar", tag.id)) {
+                            svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke-width="1.5" 
+                            stroke="currentColor" 
+                            class="w-5 h-5"{
+                                path 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" {}
+                            }
                         }
                     }
                 }
@@ -72,6 +131,7 @@ fn render_tags(tags: Vec<Tag>, is_admin: bool, name: &str) -> Markup {
 }
 
 fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
+    let active_tags = tags.iter().filter(|&tag| tag.status).count();
     html!(
         script {(PreEscaped(VALIDAPOSTSCRIPT))}
         form 
@@ -101,7 +161,7 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
                 class="shadow appearance-none border rounded w-full py-2 px-3 
                 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" {}
             }
-            @if !tags.is_empty() {
+            @if !tags.is_empty() && active_tags>0 {
                 div class="mb-6 flex flex-nowrap" {
                     div class="flex mr-5" {
                         input 
@@ -113,13 +173,15 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
                         label class="block text-gray-700 text-sm font-bold ml-1" for="nenhum" { "Nenhum" }
                     }
                     @for tag in tags {
-                        div class="flex mr-5" {
-                            input 
-                            name="tag_id"
-                            value=(tag.id)
-                            id=(tag.nome)
-                            type="radio" {}
-                            label class="block text-gray-700 text-sm font-bold ml-1" for=(tag.nome) { (tag.nome) }
+                        @if tag.status {
+                            div class="flex mr-5" {
+                                input 
+                                name="tag_id"
+                                value=(tag.id)
+                                id=(tag.nome)
+                                type="radio" {}
+                                label class="block text-gray-700 text-sm font-bold ml-1" for=(tag.nome) { (tag.nome) }
+                            }
                         }
                     }
                 }

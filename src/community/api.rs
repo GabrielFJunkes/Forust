@@ -76,7 +76,7 @@ pub async fn edit_tag(
 }
 
 pub async fn get_tag_data(db: &Pool<MySql>, id: &String) -> Option<Tag> {
-    let query_result = sqlx::query_as::<_, Tag>("SELECT id, nome FROM tags WHERE id=?")
+    let query_result = sqlx::query_as::<_, Tag>("SELECT id, nome, status FROM tags WHERE id=?")
     .bind(id)
     .fetch_one(db)
     .await;
@@ -113,9 +113,9 @@ pub async fn get_community_data(db: &Pool<MySql>, name: &String) -> Option<Commu
         Ok(result) => {
             let tags_query = sqlx::query_as::<_, Tag>(
                 r#"
-                SELECT id, nome
+                SELECT id, nome, status
                 FROM tags
-                WHERE comunidade_id = ? AND status = TRUE
+                WHERE comunidade_id = ?
                 "#,
             )
             .bind(result.id)
@@ -188,6 +188,21 @@ pub async fn create_tag(
     Extension(referer): Extension<Referer>,
     Path(id): Path<String>,
     Form(body): Form<TagBody>, ) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    if body.nome=="[Removido]" {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar tag. Tag não pode ser \"[Removido]\".", url));
+        return Err((jar,Redirect::to(referer)))
+    }
+
+    if body.nome.len()<2 {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar tag. Tag deve conter pelo menos 3 caracteres.", url));
+        return Err((jar,Redirect::to(referer)))
+    }
+
     let query_result = sqlx::query("INSERT INTO tags (nome, comunidade_id) VALUES (?, ?)")
         .bind(body.nome)
         .bind(id)
@@ -195,14 +210,12 @@ pub async fn create_tag(
         .await;
     match query_result {
         Ok(_) => {
-            let url = referer.url;
-            let cookie = jar.add(create_cookie("success_msg", "Categoria cadastrada com sucesso.", url.clone()));
-            Ok((cookie, Redirect::to(&url)))
+            let cookie = jar.add(create_cookie("success_msg", "Categoria cadastrada com sucesso.", url));
+            Ok((cookie, Redirect::to(referer)))
         },
         Err(_err) => {
-            let url = referer.url;
-            let cookie = jar.add(create_cookie("error_msg", "Falha ao cadastrar categoria.", url.clone()));
-            Err((cookie, Redirect::to(&url)))},
+            let cookie = jar.add(create_cookie("error_msg", "Falha ao cadastrar categoria.", url));
+            Err((cookie, Redirect::to(referer)))},
     }
 }
 
@@ -228,6 +241,38 @@ pub async fn get_if_follows(user_id: i64, community_id: &String, db: &Pool<MySql
         Ok(follow) => follow,
         Err(_) => None
     }
+}
+
+async fn delete_tag(
+    Extension(state): Extension<AppState>, 
+    Extension(referer): Extension<Referer>, 
+    jar: CookieJar,
+    Path((_, tag_id, tipo)): Path<(String, String, String)>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
+    
+    let tipo = tipo=="ativar";
+
+    let query_result = sqlx::query(
+    "UPDATE tags SET status = ? WHERE id = ?")
+    .bind(tipo)
+    .bind(tag_id)
+    .execute(&state.db)
+    .await;
+
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    match query_result {
+        Ok(_) => {
+            let jar = jar.add(create_cookie("success_msg", "Status da tag atualizado com sucesso.", url));
+            Ok((jar, Redirect::to(referer)))
+        },
+        Err(_) => {
+            let jar = jar.add(create_cookie("error_msg", "Erro ao atualizar status tag.", url));
+            Err((jar, Redirect::to(referer)))
+        },
+    }
+
 }
 
 pub async fn inscrever(
@@ -338,6 +383,7 @@ pub fn create_community_router() -> Router {
         .route("/:id/tag", post(create_tag))
         .route("/:id/seguir", get(inscrever))
         .route("/:id/tag/:tag_id", post(edit_tag))
+        .route("/:id/tag/:tag_id/:tipo", get(delete_tag))
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))

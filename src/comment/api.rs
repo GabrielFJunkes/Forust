@@ -68,8 +68,19 @@ async fn create(
     Path(id): Path<String>,
     Form(body): Form<CommentForm>) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
 
-    let mut now = OffsetDateTime::now_utc();
-    now += Duration::from_secs(1);
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
+    
+    if body.body=="[Removido]" {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar comentário. Comentário não pode ser \"[Removido]\".", url));
+        return Err((jar,Redirect::to(referer)))
+    }
+
+    if body.body.len()<2 {
+        let jar = jar.add(create_cookie("error_msg", "Erro ao criar comentário. Comentário deve conter pelo menos 3 caracteres.", url));
+        return Err((jar,Redirect::to(referer)))
+    }
 
     let query_result = sqlx::query(
         "INSERT INTO comentarios (post_id, usuario_id, body) VALUES (?, ?, ?)")
@@ -81,14 +92,14 @@ async fn create(
 
     match query_result {
         Ok(_) => {
-            let jar = jar.add(create_cookie("success_msg", "Comentário cadastrado com sucesso.", referer.url.clone()));
-            Ok((jar, Redirect::to(referer.url.as_str())))
+            let jar = jar.add(create_cookie("success_msg", "Comentário cadastrado com sucesso.", url));
+            Ok((jar, Redirect::to(referer)))
         },
         Err(_err) => {
-            let jar = jar.add(create_cookie("error_msg", "Erro ao cadastrar comentário.", referer.url.clone()));
+            let jar = jar.add(create_cookie("error_msg", "Erro ao cadastrar comentário.", url));
             Err(
                 (jar,
-                Redirect::to(referer.url.as_str()))
+                Redirect::to(referer))
             )
         },
     }   

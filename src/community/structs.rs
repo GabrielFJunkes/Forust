@@ -3,7 +3,8 @@ use serde::Deserialize;
 #[derive(sqlx::FromRow, Clone)]
 pub struct Tag {
     pub id: i64,
-    pub nome: String
+    pub nome: String,
+    pub status: bool
 }
 
 #[derive(sqlx::FromRow)]
