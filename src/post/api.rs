@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
 use axum_extra::extract::CookieJar;
 use sqlx::{Pool, MySql, Error};
-use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment, comment::api::edit_comment};
+use crate::{app_state::AppState, auth::{middleware::logged_in, structs::UserJWT}, component::{structs::Referer, cookie::create_cookie}, post::structs::Comment, comment::api::edit_comment, community::structs::CommunityParams};
 
 use super::structs::{PostPreview, PostBody, Post, CommentSQLData, PostRanking, PostBodyEdit};
 
@@ -96,12 +96,13 @@ pub async fn edit(
     }   
 }
 
-pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id: Option<i64>) -> Vec<PostPreview> {
+pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id: Option<i64>, params: CommunityParams) -> Vec<PostPreview> {
     let mut user_id_string = String::from("NULL");
     if let Some(user_id) = user_id {
         user_id_string = user_id.to_string();
     }
-    let query = format!("SELECT posts.id, posts.titulo, 
+    
+    let mut query = format!("SELECT posts.id, posts.titulo, 
         CASE
             WHEN LENGTH(posts.body) <= 100 THEN posts.body
             ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
@@ -118,15 +119,55 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
             GROUP BY post_id
         ) as avaliacoes ON posts.id = avaliacoes.post_id
         LEFT JOIN usuarios_avaliam_posts uap ON uap.post_id=posts.id AND uap.usuario_id = {user_id_string}");
+    if let Some(tag_name) = &params.tag {
+        query.push_str(&format!(" WHERE tags.nome = '{tag_name}'"))
+    }
     let result: Result<Vec<PostPreview>, Error>;
     if let Some(community_id) = community_id {
-        let query_plus = " WHERE posts.comunidade_id = ?";
+        let mut query_plus: String;
+        if params.tag.is_some(){
+            query_plus = " AND posts.comunidade_id = ?".to_owned();
+        }else{
+            query_plus = " WHERE posts.comunidade_id = ?".to_owned();
+        }
+        if let Some(filter) = &params.filter {
+            match filter.as_str() {
+                "recente" => {
+                    query_plus.push_str(&format!(" ORDER BY posts.created_at DESC"))
+                }
+                "semana" => {
+                    query_plus.push_str(&format!(" AND posts.created_at >= CURRENT_DATE - INTERVAL 7 DAY
+                    ORDER BY posts.created_at DESC;"))
+                }
+                _ => {
+                    query_plus.push_str(&format!(" ORDER BY ranking DESC"))
+                }
+            }
+        }else{
+            query_plus.push_str(&format!(" ORDER BY ranking DESC"))
+        }
         result = sqlx::query_as::<_, PostPreview>(
         &(query.to_owned()+&query_plus))
         .bind(community_id)
         .fetch_all(db)
         .await;
     } else {
+        if let Some(filter) = &params.filter {
+            match filter.as_str() {
+                "recente" => {
+                    query.push_str(&format!(" ORDER BY posts.created_at DESC"));
+                }
+                "semana" => {
+                    query.push_str(&format!(" WHERE posts.created_at >= CURRENT_DATE - INTERVAL 7 DAY
+                    ORDER BY posts.created_at DESC;"))
+                }
+                _ => {
+                    query.push_str(&format!(" ORDER BY ranking DESC"));
+                }
+            }
+        }else{
+            query.push_str(&format!(" ORDER BY ranking DESC"))
+        }
         result = sqlx::query_as::<_, PostPreview>(
         &query)
         .bind(community_id)

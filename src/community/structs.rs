@@ -7,6 +7,12 @@ pub struct Tag {
     pub status: bool
 }
 
+#[derive(Deserialize)]
+pub struct CommunityParams {
+    pub tag: Option<String>,
+    pub filter: Option<String>
+}
+
 #[derive(sqlx::FromRow)]
 pub struct Community {
     pub id: i64,

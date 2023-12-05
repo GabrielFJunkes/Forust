@@ -1,11 +1,10 @@
-use axum::{Extension, response::IntoResponse};
+use axum::{Extension, response::IntoResponse, extract::Query};
 use axum_extra::extract::CookieJar;
 use maud::{html, Markup};
 
-use crate::{app_state::AppState, community::structs::TopCommunity, component::page::{build_page, is_logged_in_with_data}, post::{api::get_posts_data, view::render_posts_preview}, auth::structs::UserJWT};
+use crate::{app_state::AppState, community::structs::{TopCommunity, CommunityParams}, component::page::{build_page, is_logged_in_with_data}, post::{api::get_posts_data, view::render_posts_preview, structs::PostPreview}, auth::structs::UserJWT};
 
-async fn render_posts(state: &AppState, user_id: Option<i64>) -> Markup {
-    let posts = get_posts_data(&state.db, None, user_id).await;
+fn render_posts(posts: Vec<PostPreview>) -> Markup {
     render_posts_preview(posts)
 }
 
@@ -57,31 +56,33 @@ async fn render_top_communities(communities: Option<Vec<TopCommunity>>) -> Marku
     )
 }
 
-async fn content(state: AppState, user: Option<UserJWT>) -> Markup {
-    let user_id = if let Some(user) = user {
-        Some(user.id)
-    }else{
-        None
-    };
+async fn content(state: AppState, posts: Vec<PostPreview>) -> Markup {
     html!(
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
                 div class="flex items-center justify-between grow" {
                     h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Postagens"}
-                    div {
-                        select
-                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        {
-                            option { "Mais recente" };
-                            option { "Última semana" };
+                    div class="relative w-fit" {
+                        input id="dropdownCheckbox" type="checkbox" class="hidden peer" {}
+                
+                        label 
+                        for="dropdownCheckbox" 
+                        class="w-full px-5 border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" {
+                            "Filtros"
+                        }
+                
+                        div class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 peer-checked:block" {
+                            a href="?" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" { "Mais votados" }
+                            a href="?filter=recente" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" { "Mais recente" }
+                            a href="?filter=semana" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" { "Última semana" }
                         }
                     }
                 }
-                (render_posts(&state, user_id).await);
+                (render_posts(posts));
             }
             div class="hidden w-4/12 lg:block" {
                 h1 class="text-xl font-bold text-gray-700 md:text-2xl" {"Comunidades mais populares"}
-                div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
+                div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md mt-4" {
                     ul class="list-inside list-disc" {
                         (render_top_communities(get_top_communities(&state).await).await)
                     }
@@ -92,8 +93,17 @@ async fn content(state: AppState, user: Option<UserJWT>) -> Markup {
 }
 
 
-pub async fn home_page(Extension(state): Extension<AppState>, jar: CookieJar) -> impl IntoResponse {
+pub async fn home_page(
+    Extension(state): Extension<AppState>, 
+    Query(params): Query<CommunityParams>,
+    jar: CookieJar) -> impl IntoResponse {
     let title = "Forust - Home";
     let is_logged = is_logged_in_with_data(jar.get("session_jwt"));
-    build_page(&title, content(state, is_logged).await, jar).await
+    let posts: Vec<PostPreview>;
+    if let Some(user) = &is_logged {
+        posts = get_posts_data(&state.db, None, Some(user.id), params).await;
+    } else{
+        posts = get_posts_data(&state.db, None, None, params).await;
+    }
+    build_page(&title, content(state, posts).await, jar).await
 }

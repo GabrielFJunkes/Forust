@@ -1,10 +1,10 @@
 use maud::{html, Markup, PreEscaped};
 
-use crate::{app_state::AppState, post::{api::get_posts_data, view::render_posts_preview}, community::api::get_if_follows, auth::structs::UserJWT, component::cookie::create_cookie};
+use crate::{app_state::AppState, post::{api::get_posts_data, view::render_posts_preview, structs::PostPreview}, community::api::get_if_follows, auth::structs::UserJWT, component::cookie::create_cookie};
 
-use super::{structs::{Tag, Community, User}, api::{get_community_data, get_tag_data, get_community_users}};
+use super::{structs::{Tag, Community, User, CommunityParams}, api::{get_community_data, get_tag_data, get_community_users}};
 
-use axum::{Extension, response::{IntoResponse, Redirect}, extract::Path};
+use axum::{Extension, response::{IntoResponse, Redirect}, extract::{Path, Query}};
 use axum_extra::extract::CookieJar;
 
 use crate::component::page::{build_page, is_logged_in_with_data};
@@ -33,8 +33,7 @@ function validaPostForm() {
 }
 ";
 
-pub async fn render_posts(state: &AppState, id: i64, user_id: Option<i64>) -> Markup {
-    let posts = get_posts_data(&state.db, Some(id), user_id).await;
+pub async fn render_posts(posts: Vec<PostPreview>) -> Markup {
     render_posts_preview(posts)
 }
 
@@ -138,7 +137,7 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
         onsubmit="return validaPostForm()"
         action="/api/post"
         method="POST"
-        class="bg-white flex flex-col shadow-md rounded px-8 pt-6 pb-8 mb-4" {
+        class="mt-6 bg-white flex flex-col shadow-md rounded px-8 pt-6 pb-8 mb-4" {
             input type="hidden" name="community_id" value=(community_id) {  }
             div class="mb-6" {
                 label class="block text-gray-700 text-sm font-bold mb-2" for="titulo" { "Título" }
@@ -204,7 +203,7 @@ fn render_create_post(tags: &Vec<Tag>, community_id: i64) -> Markup {
     )
 }
 
-pub async fn content(state: &AppState, community: Community, user: Option<UserJWT>) -> Markup {
+pub async fn content(state: &AppState, community: Community, user: Option<UserJWT>, posts: Vec<PostPreview>) -> Markup {
     let follows = if let Some(user) = &user {
         get_if_follows(user.id, &(community.id.to_string()), &state.db).await
     }else {
@@ -216,27 +215,38 @@ pub async fn content(state: &AppState, community: Community, user: Option<UserJW
         div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
             div class="w-4/5 lg:w-8/12" {
                 div class="flex items-center justify-between grow" {
-                    h1 class="mb-4 text-xl font-bold text-gray-700 md:text-2xl " {"Postagens"}
-                    div class="mb-4" {
-                        select
-                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        {
-                            option { "Mais recente" };
-                            option { "Última semana" };
+                    h1 class=" text-xl font-bold text-gray-700 md:text-2xl " {"Postagens"}
+                    div class="" {
+                        div class="relative w-fit" {
+                            input id="dropdownCheckbox" type="checkbox" class="hidden peer" {}
+                    
+                            label 
+                            for="dropdownCheckbox" 
+                            class="w-full px-5 border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" {
+                                "Filtros"
+                            }
+                    
+                            div class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 peer-checked:block" {
+                                a href="?" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" { "Mais votados" }
+                                a href="?filter=recente" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" { "Mais recente" }
+                                a href="?filter=semana" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" { "Última semana" }
+                            }
                         }
                     }
                 }
-                @if let Some(user) = &user {
+                @if user.is_some() {
                     (render_create_post(&community.tags, community.id))
-                    (render_posts(state, community.id, Some(user.id)).await);
+                    (render_posts(posts).await);
                 }@else{
-                    (render_posts(state, community.id, None).await);
+                    (render_posts(posts).await);
                 }
             }
             div class="w-4/12 lg:block" {
-                div class="mb-4 flex justify-between" {
+                div class="flex justify-between" {
                     div class="inline-flex flex" {
-                        h1 class="text-xl font-bold text-gray-700 md:text-2xl" {"f/" (community.nome)}
+                        a 
+                        href=(format!("/f/{}", community.nome))
+                        class="text-xl font-bold text-gray-700 md:text-2xl" {"f/" (community.nome)}
                         @if user.is_some() {
                             a href=(format!("/api/comunidade/{}/seguir", community.id)) 
                             class="ml-2 w-fit text-sm px-2 rounded-lg flex items-center bg-blue-600 text-white" { 
@@ -276,7 +286,7 @@ pub async fn content(state: &AppState, community: Community, user: Option<UserJW
                         }
                     }
                 }
-                div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
+                div class="mt-6 flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
                     (community.desc)
                 }
                 h1 class="mb-4 mt-10 text-xl font-bold text-gray-700" {"Categorias"}
@@ -324,11 +334,20 @@ pub fn content_empty() -> Markup {
     )
 }
 
-pub async fn community_page(Extension(state): Extension<AppState>, jar: CookieJar, Path(name): Path<String>, ) -> impl IntoResponse {
+pub async fn community_page(
+    Extension(state): Extension<AppState>, 
+    jar: CookieJar, 
+    Path(name): Path<String>, Query(params): Query<CommunityParams>) -> impl IntoResponse {
     let title = "f/".to_owned()+&name;
-    let logged_in = is_logged_in_with_data(jar.get("session_jwt"));
     if let Some(community) = get_community_data(&state.db, &name).await {
-        build_page(&title, content(&state, community, logged_in).await, jar).await
+        let logged_in = is_logged_in_with_data(jar.get("session_jwt"));
+        let posts: Vec<PostPreview>;
+        if let Some(user) = &logged_in {
+            posts = get_posts_data(&state.db, Some(community.id), Some(user.id), params).await;
+        }else{
+            posts = get_posts_data(&state.db, Some(community.id), None, params).await;
+        }
+        build_page(&title, content(&state, community, logged_in, posts).await, jar).await
     }else {
         build_page(&title, content_empty(), jar).await
     }
