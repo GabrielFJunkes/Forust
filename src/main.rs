@@ -52,7 +52,6 @@ async fn main() {
     .nest("/perfil", create_profile_router());
 
     let app = Router::new()
-        .route("/perfil", get(profile_page))
         .route("/p/:id/editar", get(edit_post_page))
         .route("/c/:id/editar", get(edit_comment_page))
         .route("/f/:name/tag/:id/editar", get(edit_tag_page))
@@ -60,6 +59,7 @@ async fn main() {
         .route_layer(middleware::from_fn(
             |req, next| logged_in(req, next),
         ))
+        .route("/u/:name", get(profile_page))
         .route("/",get(home_page))
         .route("/f/:name", get(community_page))
         .route("/login",get(login_page))

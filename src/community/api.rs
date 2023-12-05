@@ -6,7 +6,7 @@ use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};
 
-use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody, TagBodyWithName, CommunityBodyEdit, User, CommunityParams, AdminsCount};
+use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody, TagBodyWithName, CommunityBodyEdit, User, AdminsCount};
 
 async fn community_admins_count(
     db: &Pool<MySql>,

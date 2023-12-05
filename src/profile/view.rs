@@ -1,8 +1,10 @@
-use axum::{Extension, response::IntoResponse};
+use axum::{Extension, response::IntoResponse, extract::Path};
 use axum_extra::extract::CookieJar;
 use maud::{Markup, html, PreEscaped};
 
-use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::build_page}, auth::structs::UserJWT, community::api::get_user_followed_communities};
+use crate::{app_state::AppState, component::{form::{Form, Input, FormElem, create_form}, page::{build_page, is_logged_in_with_data}}, auth::structs::UserJWT, community::{api::get_user_followed_communities, structs::{FollowedCommunityData, CommunityParams}}, post::{structs::PostPreview, api::{get_posts_data, get_user_posts_data}, view::render_posts_preview}};
+
+use super::{api::get_user_by_name, structs::User};
 
 const VALIDASCRIPT: &'static str= "
 function validaPerfilForm() {
@@ -27,8 +29,8 @@ function validaPerfilForm() {
 }
 ";
 
-async fn render_followed_communities(state: AppState,user_id: i64) -> Markup {
-    let communities = get_user_followed_communities(&state.db, user_id).await;
+fn render_followed_communities(communities: Vec<FollowedCommunityData>
+) -> Markup {
     html!(
         ul class="list-inside list-disc" {
             @if communities.is_empty() {
@@ -53,7 +55,7 @@ async fn render_followed_communities(state: AppState,user_id: i64) -> Markup {
     )
 }
 
-async fn content(state: AppState, user: UserJWT) -> Markup {
+fn content_own(user: UserJWT, followedCommunities: Vec<FollowedCommunityData>, posts: Vec<PostPreview>) -> Markup {
     let community_form: Form = Form {
         inputs: vec![
             Input {
@@ -159,11 +161,15 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
                         }
                     }
                 }
+                div class="flex items-center justify-between grow my-4" {
+                    h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Postagens"}
+                }
+                (render_posts_preview(posts))
             }
             div class="w-4/12 lg:block" {
                 h1 class="mb-4 text-xl font-bold text-gray-700" {"Comunidades inscritas"}
                 div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
-                    (render_followed_communities(state, user.id).await)
+                    (render_followed_communities(followedCommunities))
                 }
                 h1 class="my-4 text-xl font-bold text-gray-700" {"Criar comunidade"}
                 (create_form(community_form))
@@ -172,7 +178,61 @@ async fn content(state: AppState, user: UserJWT) -> Markup {
     )
 }
 
-pub async fn profile_page(Extension(state): Extension<AppState>, Extension(user): Extension<UserJWT>, jar: CookieJar) -> impl IntoResponse {
-    let title = "Forust - Perfil";
-    build_page(&title, content(state, user).await, jar).await
+fn content_user(user: User, followed_communities: Vec<FollowedCommunityData>, posts: Vec<PostPreview>) -> Markup {
+    html!(
+        div class="py-8 flex justify-center w-4/5 mx-auto space-x-8" {
+            div class="w-4/5 lg:w-8/12" {
+                div class="flex items-center justify-between grow mb-4" {
+                    h1 class="text-xl font-bold text-gray-700 md:text-2xl " {(format!("Postagens de u/{}", user.nome))}
+                }
+                (render_posts_preview(posts))
+            }
+            div class="w-4/12 lg:block" {
+                h1 class="mb-4 text-xl font-bold text-gray-700" {"Comunidades inscritas"}
+                div class="flex flex-col px-6 py-4 mx-auto bg-white rounded-lg shadow-md" {
+                    (render_followed_communities(followed_communities))
+                }
+            }
+        }
+    )
+}
+
+fn content_none() -> Markup {
+    html!(
+        div class="py-8 flex justify-center w-4/5 ml-10" {
+            div class="w-full" {
+                div class="flex items-center justify-between grow" {
+                    h1 class="text-xl font-bold text-gray-700 md:text-2xl " {"Esse usuário não existe :("}
+                }
+            }
+        }
+    )
+}
+
+pub async fn profile_page(
+    Extension(state): Extension<AppState>, 
+    Path(username): Path<String>, 
+    jar: CookieJar) -> impl IntoResponse {
+    let title = format!("Forust - u/{username}");
+    let user = get_user_by_name(&state.db, &username).await;
+    if let Some(user) = user {
+        let logged_in = is_logged_in_with_data(jar.get("session_jwt"));
+        if let Some(logged_user) = logged_in {
+            if logged_user.nome==username {
+                let communities = get_user_followed_communities(&state.db, user.id).await;
+                let posts = get_user_posts_data(&state.db, logged_user.id, Some(logged_user.id)).await;
+                build_page(&title, content_own(logged_user, communities, posts), jar).await
+            }else{
+                let communities = get_user_followed_communities(&state.db, user.id).await;
+                let posts = get_user_posts_data(&state.db, user.id, Some(logged_user.id)).await;
+                build_page(&title, content_user(user, communities, posts), jar).await
+            }
+        }else{
+            let communities = get_user_followed_communities(&state.db, user.id).await;
+                let posts = get_user_posts_data(&state.db, user.id, None).await;
+                build_page(&title, content_user(user, communities, posts), jar).await
+        }
+    }else{
+        build_page(&title, content_none(), jar).await
+    }
 }

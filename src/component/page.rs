@@ -16,7 +16,7 @@ fn header(page_title: &str) -> Markup {
     }
 }
 
-fn nav(logged: bool) -> Markup {
+fn nav(logged: Option<UserJWT>) -> Markup {
     html!(
         nav class="px-6 py-4 bg-white shadow" {
             div class="flex justify-between place-items-center" {
@@ -49,9 +49,9 @@ fn nav(logged: bool) -> Markup {
                 }
                   
                 div dir="rtl" class="basis-1/4" {
-                    @if logged {
+                    @if let Some(user) = logged {
                         div class="text-xl text-gray-800 md:text-base group cursor-pointer w-fit" {
-                            a href="/perfil" class="text-gray-800 text-base block" { "Meu perfil" }
+                            a href=(format!("/u/{}", user.nome)) class="text-gray-800 text-base block" { "Meu perfil" }
                             div class="hidden group-hover:block absolute mb-1 bg-white border border-gray-200 shadow-lg" {
                                 a href="/api/auth/logout" class="block px-3 py-1 text-sm text-gray-800 hover:bg-gray-100 inline-flex flex"{
                                     ("Logout")
@@ -192,7 +192,7 @@ fn consume_notification_cookie(jar: CookieJar) -> (Option<(String, String)>, Coo
 }
 
 pub async fn build_page(title: &str, content: Markup, jar: CookieJar) -> impl IntoResponse {
-    let logged_in = is_logged_in(jar.get("session_jwt"));
+    let logged_in = is_logged_in_with_data(jar.get("session_jwt"));
     let (option_noti, _jar) = consume_notification_cookie(jar);
     let html = html!(
         (DOCTYPE);

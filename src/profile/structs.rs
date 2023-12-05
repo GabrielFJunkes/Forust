@@ -6,3 +6,10 @@ pub struct ProfileBody {
     pub email: String,
     pub senha: String
 }
+
+
+#[derive(sqlx::FromRow, Clone, Debug)]
+pub struct User {
+    pub id: i64,
+    pub nome: String
+}

@@ -3,12 +3,23 @@ use std::time::Duration;
 use axum::{routing::{post, get}, Router, Extension, response::Redirect, Form, middleware, extract::Path};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
 use jsonwebtoken::{encode, Header, EncodingKey};
-use sqlx::{mysql::MySqlQueryResult, types::time::OffsetDateTime};
+use sqlx::{mysql::MySqlQueryResult, types::time::OffsetDateTime, Pool, MySql};
 use crate::{app_state::AppState, auth::{middleware::logged_in, structs::{UserJWT, UserName}}, component::{structs::Referer, cookie::create_cookie}};
 
-use super::structs::ProfileBody;
+use super::structs::{ProfileBody, User};
 
-
+pub async fn get_user_by_name(db: &Pool<MySql>, name: &String) -> Option<User> {
+    let query_result = sqlx::query_as::<_, User>("SELECT id, nome FROM usuarios WHERE nome = ? AND nome != '[Removido]'")
+    .bind(name)
+    .fetch_optional(db)
+    .await;
+    match query_result {
+        Ok(result) => result,
+        Err(err) => {
+            println!("{err}");
+            None},
+    }
+}
 
 pub async fn create(
     Extension(state): Extension<AppState>, 

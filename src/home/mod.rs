@@ -2,7 +2,7 @@ use axum::{Extension, response::IntoResponse, extract::Query};
 use axum_extra::extract::CookieJar;
 use maud::{html, Markup};
 
-use crate::{app_state::AppState, community::structs::{TopCommunity, CommunityParams}, component::page::{build_page, is_logged_in_with_data}, post::{api::get_posts_data, view::render_posts_preview, structs::PostPreview}, auth::structs::UserJWT};
+use crate::{app_state::AppState, community::structs::{TopCommunity, CommunityParams}, component::page::{build_page, is_logged_in_with_data}, post::{api::get_posts_data, view::render_posts_preview, structs::PostPreview}};
 
 fn render_posts(posts: Vec<PostPreview>) -> Markup {
     render_posts_preview(posts)

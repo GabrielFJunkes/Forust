@@ -185,6 +185,45 @@ pub async fn get_posts_data(db: &Pool<MySql>, community_id: Option<i64>, user_id
     }
 }
 
+pub async fn get_user_posts_data(db: &Pool<MySql>, user_id: i64, logged_user_id: Option<i64> ) -> Vec<PostPreview> {
+    let mut user_id_string = String::from("NULL");
+    if let Some(logged_user_id) = logged_user_id {
+        user_id_string = logged_user_id.to_string();
+    }
+    let query = format!("SELECT posts.id, posts.titulo, 
+        CASE
+            WHEN LENGTH(posts.body) <= 100 THEN posts.body
+            ELSE CONCAT(SUBSTRING(posts.body, 1, 100), '...')
+        END as body, 
+        uap.gostou as liked,
+        usuarios.nome AS user_name, comunidades.id as community_id, comunidades.nome as community_name, tags.nome as tag_name, posts.created_at,
+        CAST(COALESCE(avaliacoes.count, 0) AS SIGNED) as ranking
+        FROM posts JOIN usuarios ON posts.usuario_id = usuarios.id 
+        JOIN comunidades ON posts.comunidade_id = comunidades.id 
+        LEFT JOIN tags ON tags.id = posts.tag_id
+        LEFT JOIN (
+            SELECT post_id, SUM(CASE WHEN gostou = true THEN 1 ELSE -1 END) as count
+            FROM usuarios_avaliam_posts
+            GROUP BY post_id
+        ) as avaliacoes ON posts.id = avaliacoes.post_id
+        LEFT JOIN usuarios_avaliam_posts uap ON uap.post_id=posts.id AND uap.usuario_id = {user_id_string} 
+        WHERE posts.usuario_id = ?
+        ORDER BY ranking DESC");
+    let result = sqlx::query_as::<_, PostPreview>(
+        &query)
+        .bind(user_id)
+        .fetch_all(db)
+        .await;
+    match result {
+        Ok(vec) => {
+            vec
+        },
+        Err(err) => {
+            println!("{}", err);
+            [].to_vec()},
+    }
+}
+
 pub async fn get_post_data(db: &Pool<MySql>, post_id: String, user_id: Option<i64>) -> Option<Post> {
     let mut user_id_string = String::from("NULL");
     if let Some(user_id) = user_id {
