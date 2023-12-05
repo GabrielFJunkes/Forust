@@ -6,7 +6,22 @@ use sqlx::{Pool, MySql, types::time::OffsetDateTime};
 
 use crate::{app_state::AppState, auth::{structs::UserJWT, middleware::logged_in}, component::{structs::Referer, cookie::create_cookie}};
 
-use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody, TagBodyWithName, CommunityBodyEdit, User, CommunityParams};
+use super::structs::{Community, CommunityData, Tag, CommunityBody, FollowedCommunityData, Follow, TagBody, TagBodyWithName, CommunityBodyEdit, User, CommunityParams, AdminsCount};
+
+async fn community_admins_count(
+    db: &Pool<MySql>,
+    id: &String
+) -> Option<i64> {
+    let query_result = sqlx::query_as::<_,AdminsCount>(
+        "SELECT COUNT(comunidade_id) AS count FROM inscricoes WHERE comunidade_id = ? AND admin = TRUE")
+        .bind(id)
+        .fetch_one(db)
+        .await;
+    match query_result {
+        Ok(result) => Some(result.count),
+        Err(_) => None,
+    }
+}
 
 pub async fn edit(
     Extension(state): Extension<AppState>, 
@@ -284,13 +299,43 @@ pub async fn inscrever(
 ) -> Result<(CookieJar, Redirect), (CookieJar, Redirect)> {
     let follow = get_if_follows(user.id, &id, &state.db).await;
 
-    let mut now = OffsetDateTime::now_utc();
-    now += Duration::from_secs(5);
+    let url = referer.url;
+    let referer = url.clone();
+    let referer = &referer;
 
     match follow {
         Some(result) => {
             if result.admin {
-                todo!("Check if is only admin");
+                let count = community_admins_count(&state.db, &id).await;
+                match count {
+                    Some(count) => {
+                        if count<2 {
+                            let cookie = jar.add(create_cookie("error_msg", "Erro ao deixar de seguir comunidade. Você é o único admin.", url));
+                            return Err((cookie, Redirect::to(referer)))
+                        }else{
+                            let delete_result = sqlx::query("DELETE FROM inscricoes WHERE usuario_id=? AND comunidade_id=?")
+                                .bind(user.id)
+                                .bind(id)
+                                .execute(&state.db)
+                                .await;   
+                                
+                                match delete_result {
+                                    Ok(_) => {
+                                        let cookie = jar.add(create_cookie("success_msg", "Você deixou de seguir essa comunidade.", url));
+                                        return Ok((cookie, Redirect::to(referer)))
+                                    },
+                                    Err(_) => {
+                                        let cookie = jar.add(create_cookie("error_msg", "Erro ao deixar de seguir comunidade.", url));
+                                        return Err((cookie, Redirect::to(referer)))
+                                    },
+                                }
+                        }
+                    },
+                    None => {
+                        let cookie = jar.add(create_cookie("error_msg", "Erro ao deixar de seguir comunidade.", url));
+                        Err((cookie, Redirect::to(referer)))
+                    }
+                }
             }else{
                 let delete_result = sqlx::query("DELETE FROM inscricoes WHERE usuario_id=? AND comunidade_id=?")
                 .bind(user.id)
@@ -300,24 +345,12 @@ pub async fn inscrever(
                 
                 match delete_result {
                     Ok(_) => {
-                        let mut cookie_ob = Cookie::new("success_msg", "Você deixou de seguir essa comunidade.");
-                        cookie_ob.set_path("/");
-                        cookie_ob.set_expires(now);
-
-                        Ok((
-                            jar.add(cookie_ob),
-                            Redirect::to(&referer.url)
-                        ))
+                        let cookie = jar.add(create_cookie("success_msg", "Você deixou de seguir essa comunidade.", url));
+                        Ok((cookie, Redirect::to(referer)))
                     },
-                    Err(_err) => {
-                        let mut cookie_ob = Cookie::new("error_msg", "Erro ao deixar de seguir comunidade.");
-                        cookie_ob.set_path("/");
-                        cookie_ob.set_expires(now);
-
-                        Err((
-                            jar.add(cookie_ob),
-                            Redirect::to(&referer.url)
-                        ))
+                    Err(_) => {
+                        let cookie = jar.add(create_cookie("error_msg", "Erro ao deixar de seguir comunidade.", url));
+                        Err((cookie, Redirect::to(referer)))
                     },
                 }
             }
@@ -329,14 +362,8 @@ pub async fn inscrever(
             .execute(&state.db)
             .await;
 
-            let mut cookie_ob = Cookie::new("success_msg", "Comunidade seguida com sucesso.");
-            cookie_ob.set_path("/");
-            cookie_ob.set_expires(now);
-
-            Ok((
-                jar.add(cookie_ob),
-                Redirect::to(&referer.url)
-            ))
+            let cookie = jar.add(create_cookie("success_msg", "Comunidade seguida com sucesso.", url));
+            Ok((cookie, Redirect::to(referer)))
         },
     }
 }
@@ -355,6 +382,16 @@ async fn admin(Extension(state): Extension<AppState>,
     let url = referer.url;
     let referer = url.clone();
     let referer = &referer;
+
+    if !tipo {
+        let count = community_admins_count(&state.db, &id).await;
+        if let Some(count) = count {
+            if count<2 {
+                let cookie = jar.add(create_cookie("error_msg", "Erro ao realizar ação. Este é o único admin.", url));
+                return Err((cookie, Redirect::to(referer)))
+            }
+        }
+    }
 
     let query_result = sqlx::query(
         "UPDATE inscricoes SET admin = ? WHERE comunidade_id = ? AND usuario_id = ?")

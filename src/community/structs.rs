@@ -21,6 +21,13 @@ pub struct Community {
     pub tags: Vec<Tag>
 }
 
+#[derive(sqlx::FromRow)]
+pub struct AdminsCount {
+    pub count: i64,
+}
+
+
+
 #[derive(sqlx::FromRow, Debug)]
 pub struct TopCommunity {
     pub id: i64,
