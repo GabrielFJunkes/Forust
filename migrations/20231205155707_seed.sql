@@ -23,10 +23,10 @@ INSERT INTO `inscricoes` (`usuario_id`, `comunidade_id`) VALUES
 (3, 3);
 
 -- Inserir dados na tabela 'posts'
-INSERT INTO `posts` (`titulo`, `body`, `tag_id`, `usuario_id`, `comunidade_id`) VALUES
-('Novo Smartphone no Mercado', 'Confira as últimas novidades do mundo dos smartphones.', 1, 1, 1),
-('Receita de Bolo de Chocolate', 'Aprenda a fazer um delicioso bolo de chocolate.', 2, 2, 2),
-('Minha Viagem à Tailândia', 'Compartilhando minhas experiências de viagem na Tailândia.', 3, 3, 3);
+INSERT INTO `posts` (`titulo`, `body`, `tag_id`, `usuario_id`, `comunidade_id`, `created_at`) VALUES
+('Novo Smartphone no Mercado', 'Confira as últimas novidades do mundo dos smartphones.', 1, 1, 1, '2023-12-01 00:00:00'),
+('Receita de Bolo de Chocolate', 'Aprenda a fazer um delicioso bolo de chocolate.', 2, 2, 2, '2023-11-25 00:00:00'),
+('Minha Viagem à Tailândia', 'Compartilhando minhas experiências de viagem na Tailândia.', 3, 3, 3, '2023-11-26 00:00:00');
 
 -- Inserir dados nas tabelas de avaliações (exemplos)
 INSERT INTO `usuarios_avaliam_posts` (`post_id`, `usuario_id`, `gostou`) VALUES
